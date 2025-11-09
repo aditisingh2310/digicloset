@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: supabase-db-backup
+  namespace: default
+spec:
+  schedule: "0 2 * * *"  # daily at 2am
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: db-backup
+            image: postgres:15
+            env:
+            - name: PGHOST
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-credentials
+                  key: host
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-credentials
+                  key: user
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-credentials
+                  key: password
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-db-credentials
+                  key: database
+            - name: SUPABASE_STORAGE_URL
+              value: "https://your-project-id.supabase.co/storage/v1/object"
+            - name: SUPABASE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-api-key
+                  key: key
+            command:
+            - /bin/sh
+            - -c
+            - |
+              BACKUP_FILE="/tmp/db_backup_$(date +%Y-%m-%dT%H-%M-%S).sql"
+              pg_dump -h $PGHOST -U $PGUSER -d $PGDATABASE -F c -f $BACKUP_FILE
+              curl -X POST "$SUPABASE_STORAGE_URL/digicloset-backups/upload"                 -H "Authorization: Bearer $SUPABASE_API_KEY"                 -F "file=@$BACKUP_FILE"
+          restartPolicy: OnFailure

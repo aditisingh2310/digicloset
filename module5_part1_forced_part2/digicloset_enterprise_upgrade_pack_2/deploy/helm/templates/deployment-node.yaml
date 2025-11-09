@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: digicloset-node
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: digicloset-node
+  template:
+    metadata:
+      labels:
+        app: digicloset-node
+    spec:
+      containers:
+        - name: digicloset-node
+          image: "{{ .Values.image.nodeRepository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.nodePort }}

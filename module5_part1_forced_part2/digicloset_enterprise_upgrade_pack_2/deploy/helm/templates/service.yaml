@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: digicloset-services
+spec:
+  type: ClusterIP
+  selector:
+    app: digicloset-node
+  ports:
+    - name: node
+      port: {{ .Values.service.nodePort }}
+      targetPort: {{ .Values.service.nodePort }}
+    - name: python
+      port: {{ .Values.service.pythonPort }}
+      targetPort: {{ .Values.service.pythonPort }}

@@ -1,0 +1,12 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "digicloset-python-dashboard",
+    "title": "Digicloset Python Inference Metrics",
+    "panels": [
+      { "type": "graph", "title": "Inference Latency", "targets": [{ "expr": "request_processing_seconds" }] },
+      { "type": "graph", "title": "CPU Usage", "targets": [{ "expr": "process_cpu_seconds_total" }] },
+      { "type": "graph", "title": "Memory Usage", "targets": [{ "expr": "process_resident_memory_bytes" }] }
+    ]
+  }
+}
