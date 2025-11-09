@@ -1,0 +1,10 @@
+version: '3.9'
+services:
+  app:
+    build: ..
+    ports:
+      - "3000:3000"
+  inference:
+    image: inference-service:latest
+    ports:
+      - "8000:8000"

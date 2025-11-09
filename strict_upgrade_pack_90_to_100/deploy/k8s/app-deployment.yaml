@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: digicloset-app
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: digicloset
+  template:
+    metadata:
+      labels:
+        app: digicloset
+    spec:
+      containers:
+      - name: app
+        image: digicloset/app:latest
+        ports:
+          - containerPort: 3000

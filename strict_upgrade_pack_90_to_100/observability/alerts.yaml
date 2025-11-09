@@ -1,0 +1,8 @@
+groups:
+- name: production-alerts
+  rules:
+  - alert: HighLatency
+    expr: histogram_quantile(0.95, sum(rate(request_latency_bucket[5m])) by (le)) > 1
+    for: 3m
+    labels:
+      severity: critical
