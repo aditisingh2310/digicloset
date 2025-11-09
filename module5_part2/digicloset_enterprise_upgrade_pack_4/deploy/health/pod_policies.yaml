@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: digicloset-policy
+spec:
+  restartPolicy: Always
+  terminationGracePeriodSeconds: 30
+  containers:
+    - name: dummy
+      image: busybox
+      command: ["sleep", "3600"]
+  backoffLimit: 3
