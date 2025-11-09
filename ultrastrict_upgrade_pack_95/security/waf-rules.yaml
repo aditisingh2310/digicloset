@@ -1,0 +1,5 @@
+rules:
+  - id: block-sql-injection
+    priority: 1
+    action: BLOCK
+    match: ".*(select|union|drop|insert).*"

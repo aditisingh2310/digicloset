@@ -1,0 +1,6 @@
+{
+  "description": "Ingest DigiCloset logs",
+  "processors": [
+    { "grok": { "field": "message", "patterns": ["%{TIMESTAMP_ISO8601:ts} %{LOGLEVEL:level} %{GREEDYDATA:msg}"] } }
+  ]
+}

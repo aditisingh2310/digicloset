@@ -1,0 +1,12 @@
+apiVersion: networking.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: segment
+spec:
+  selector:
+    matchLabels:
+      app: digicloset
+  rules:
+  - from:
+    - source:
+        principals: ["spiffe://digicloset.local/web"]

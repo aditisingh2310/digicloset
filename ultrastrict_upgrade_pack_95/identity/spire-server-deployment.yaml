@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spire-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spire-server
+  template:
+    metadata:
+      labels:
+        app: spire-server
+    spec:
+      containers:
+      - name: spire-server
+        image: spire/spire-server:1.7.0

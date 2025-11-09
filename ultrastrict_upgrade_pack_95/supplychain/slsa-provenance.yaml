@@ -1,0 +1,9 @@
+attestations:
+  - name: build-provenance
+    type: slsa/v1
+    builder:
+      id: "ci://digicloset/enterprise"
+    materials:
+      - git
+    metadata:
+      reproducible: true

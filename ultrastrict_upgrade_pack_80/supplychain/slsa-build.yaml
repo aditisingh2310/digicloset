@@ -1,0 +1,4 @@
+buildDefinition:
+  steps:
+    - run: npm ci
+    - run: npm test
