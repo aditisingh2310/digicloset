@@ -1,0 +1,5 @@
+signing:
+  enabled: true
+  tools:
+    - cosign
+  verify-before-deploy: true

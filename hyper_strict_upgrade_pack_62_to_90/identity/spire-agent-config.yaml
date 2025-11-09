@@ -1,0 +1,5 @@
+agent:
+  trust_domain: "digicloset"
+  server_address: "spire-server"
+  server_port: 8081
+  insecure_bootstrap: false

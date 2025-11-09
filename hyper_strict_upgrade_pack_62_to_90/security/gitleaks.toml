@@ -1,0 +1,3 @@
+title = "Gitleaks Config"
+[allowlist]
+description = "Allowed patterns"

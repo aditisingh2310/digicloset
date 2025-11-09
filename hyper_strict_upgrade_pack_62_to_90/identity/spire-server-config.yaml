@@ -1,0 +1,5 @@
+server:
+  trust_domain: "digicloset"
+  data_dir: "./data"
+  bind_address: "0.0.0.0"
+  log_level: "INFO"
