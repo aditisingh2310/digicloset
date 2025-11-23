@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: digicloset-python
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: digicloset-python
+  template:
+    metadata:
+      labels:
+        app: digicloset-python
+    spec:
+      containers:
+        - name: digicloset-python
+          image: "{{ .Values.image.pythonRepository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.service.pythonPort }}

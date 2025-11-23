@@ -1,0 +1,14 @@
+replicaCount: 1
+
+image:
+  nodeRepository: yourdockerhubusername/digicloset-node
+  pythonRepository: yourdockerhubusername/digicloset-python
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  nodePort: 3000
+  pythonPort: 8000
+
+resources: {}

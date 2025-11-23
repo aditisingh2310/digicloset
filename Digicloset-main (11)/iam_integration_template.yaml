@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: digicloset-iam-integration
+data:
+  provider: okta
+  client_id: <your-client-id>
+  client_secret: <your-client-secret>
+  redirect_uri: https://yourdomain.com/auth/callback
+  scopes: openid profile email

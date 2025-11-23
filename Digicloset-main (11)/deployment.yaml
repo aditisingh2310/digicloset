@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cost-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cost-exporter
+  template:
+    metadata:
+      labels:
+        app: cost-exporter
+    spec:
+      containers:
+      - name: cost-exporter
+        image: prom/cost-exporter:mock
+        ports:
+        - containerPort: 9100
+        env:
+        - name: COST_CPU_RATE
+          value: "0.023" # $/CPU/hour simulated
+        - name: COST_MEM_RATE
+          value: "0.010" # $/GB/hour simulated
