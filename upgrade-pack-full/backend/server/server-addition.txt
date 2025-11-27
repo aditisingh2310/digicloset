@@ -1,0 +1,4 @@
+
+/* Add this to your server.js */
+const aiProxy = require('./routes/aiProxy');
+app.use('/api/ai', aiProxy);
