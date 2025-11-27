@@ -4,7 +4,7 @@ sqlalchemy==2.0.18
 alembic==1.11.1
 databases[postgresql]==0.7.2
 psycopg2-binary==2.9.6
-python-jose==3.3.0
+python-jose==3.4.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 boto3==1.28.27
