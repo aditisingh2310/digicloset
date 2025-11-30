@@ -1,0 +1,5 @@
+# Code owners for repository areas
+# Format: <pattern> <owner>
+/src/ @your-org/frontend-team
+/.github/ @your-org/devops-team
+/terraform/ @your-org/infrastructure-team
