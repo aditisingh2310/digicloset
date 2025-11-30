@@ -1,0 +1,11 @@
+{
+  "env": "production",
+  "logging": {
+    "level": "info",
+    "format": "json"
+  },
+  "monitoring": {
+    "otelExporter": "otlp",
+    "endpoint": "http://otel-collector:4317"
+  }
+}
