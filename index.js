@@ -1,0 +1,28 @@
+{
+  "name": "digicloset",
+  "version": "0.1.0",
+  "private": false,
+  "description": "digicloset — upgrade pack scaffold",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "lint": "eslint 'src/**/*.{ts,tsx,js,jsx}' --fix",
+    "test": "jest --coverage",
+    "format": "prettier --write ."
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    // Replace with real dependencies used in your project
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "ts-node-dev": "^2.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^2.0.0",
+    "jest": "^29.0.0"
+  }
+}
