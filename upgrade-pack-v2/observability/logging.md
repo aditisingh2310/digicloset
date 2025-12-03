@@ -1,0 +1,1 @@
+Explains recommended structured logging.
