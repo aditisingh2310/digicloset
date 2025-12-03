@@ -1,0 +1,16 @@
+name: Deploy
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.27.3'
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install myapp ./deploy/helm --namespace production --create-namespace

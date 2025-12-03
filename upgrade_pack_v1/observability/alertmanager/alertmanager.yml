@@ -1,0 +1,7 @@
+global: {}
+route:
+  receiver: 'on-call'
+receivers:
+  - name: 'on-call'
+    email_configs:
+      - to: ops@example.com

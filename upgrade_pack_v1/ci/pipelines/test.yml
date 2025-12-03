@@ -1,0 +1,19 @@
+name: Test
+on: [pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        ports: ['5432:5432']
+        env:
+          POSTGRES_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: npm ci
+      - name: Run unit tests
+        run: npm test -- --coverage
+      - name: Run integration tests
+        run: ./ci/scripts/run-integration-tests.sh

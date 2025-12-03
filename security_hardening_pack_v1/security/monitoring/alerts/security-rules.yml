@@ -1,0 +1,10 @@
+groups:
+- name: security.rules
+  rules:
+    - alert: ExcessiveFailedLogins
+      expr: increase(auth_failed_total[5m]) > 50
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Spike in failed auth attempts"

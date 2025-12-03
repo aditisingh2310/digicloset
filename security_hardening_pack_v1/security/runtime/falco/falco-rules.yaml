@@ -1,0 +1,5 @@
+- rule: Write below var run
+  desc: Detect modifications to /var/run which may indicate compromise
+  condition: spawned_process and fd.name="/var/run/*"
+  output: "Write below /var/run by %user.name% (command=%proc.cmdline%)"
+  priority: WARNING

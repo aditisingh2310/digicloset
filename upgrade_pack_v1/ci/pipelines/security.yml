@@ -1,0 +1,19 @@
+name: Security Scans
+on: [push]
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Semgrep
+        run: pip install semgrep
+      - name: Run Semgrep SAST
+        run: semgrep --config p/ci
+      - name: Container scan with Trivy
+        uses: aquasecurity/trivy-action@v1
+        with:
+          format: 'table'
+      - name: Create SBOM (CycloneDX)
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-bom -o sbom.xml
