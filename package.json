@@ -16,7 +16,6 @@
     "node": ">=18"
   },
   "dependencies": {
-    // Replace with real dependencies used in your project
   },
   "devDependencies": {
     "typescript": "^5.0.0",
