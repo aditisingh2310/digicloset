@@ -1,123 +1,207 @@
-# DigiCloset
+# 🎨 **DigiCloset**
 
-DigiCloset is a lightweight, opinionated starter for managing a digital wardrobe — track clothing items, assemble outfits, and plan what to wear. This README provides an overview, quick setup instructions, and contributing notes. Please update details (commands, tech stack, badges) to match the actual project structure and tooling in this repository.
+### *Your AI-powered digital wardrobe, reimagined.*
 
-## Features
+<p align="center">
+  <img src="https://dummyimage.com/900x200/000/fff&text=DigiCloset+Fashion+Platform" alt="Banner"/>
+</p>
 
-- Catalog clothing items with photos, categories, and tags
-- Create and save outfit combinations
-- Search and filter your wardrobe
-- Outfit suggestions and scheduling (optional)
-- Import/export wardrobe data (CSV/JSON)
+<p align="center">
+Organize your wardrobe, generate smart outfit ideas, and manage your style — all with a modern, modular, scalable system built for growth.  
+</p>
 
-## Quick Start
+---
 
-> These steps are intentionally generic. Replace package manager / commands with the ones used in this repository (npm, yarn, pip, poetry, composer, etc.).
+# ✨ **Why DigiCloset?**
 
-Prerequisites
+DigiCloset brings together **style**, **technology**, and **automation**:
 
-- Git
-- Node.js (>=14) and npm, or Python (>=3.8) if this project is Python-based
-- (Optional) Docker
+💡 *Smart architecture* — clean monorepo with backend, frontend, and ML worker
+🚀 *Production-ready* — Docker-first design, CI/CD, monitoring, migrations
+🎨 *Beautiful & fast frontend* — React + TypeScript + Vite
+⚙️ *Powerful backend* — Node.js, Express, PostgreSQL
+🧠 *ML-ready worker* — Python task runner for image analysis and outfit generation
+🌍 *Deploy anywhere* — Docker Compose, cloud providers, VPS, home server
 
-Clone the repo
+---
+
+# 🗂 **Project Structure Overview**
+
+```
+DigiCloset
+│
+├── services/
+│   ├── backend/     → Express API (Node.js)
+│   ├── frontend/    → React + TypeScript web app
+│   └── worker/      → Python ML / image processor
+│
+├── migrations/       → Database schema evolution
+├── monitoring/       → Prometheus setup templates
+├── infra/            → Deployment tools + migration runner
+│
+├── docker-compose.yml          → Local development
+└── docker-compose.prod.yml     → Production deployment
+```
+
+---
+
+# 🚀 **Quick Start (Developers)**
+
+### **1️⃣ Clone**
 
 ```bash
-git clone https://github.com/aditisingh2310/digicloset.git
+git clone https://github.com/youruser/digicloset
 cd digicloset
 ```
 
-Install dependencies
-
-- If Node.js / JavaScript:
+### **2️⃣ Configure**
 
 ```bash
-# npm
-npm install
-# or yarn
-# yarn install
+cp .env.example .env
 ```
 
-- If Python:
+### **3️⃣ Launch the full stack**
 
 ```bash
-# create venv
-python -m venv venv
-source venv/bin/activate  # macOS / Linux
-venv\Scripts\activate     # Windows
-pip install -r requirements.txt
+make up
 ```
 
-Run the project
+### **✨ Your environment is live!**
 
-- Node / JS (example):
+| Service     | URL                                                          |
+| ----------- | ------------------------------------------------------------ |
+| Frontend    | [http://localhost:3000](http://localhost:3000)               |
+| Backend API | [http://localhost:4000/health](http://localhost:4000/health) |
+| PostgreSQL  | localhost:5432                                               |
+
+### **4️⃣ Stop services**
 
 ```bash
-npm run dev
-# or
-npm start
+make down
 ```
 
-- Python (example):
+---
+
+# 🧪 **Testing & Quality**
+
+DigiCloset includes full, modern CI/CD workflows:
+
+✔ Automatic install & caching
+✔ Lint + Type-check
+✔ Postgres test environment
+✔ Frontend build validation
+✔ Python worker syntax validation
+
+---
+
+# 🧩 **Services Breakdown**
+
+## 🖥 Back-end (Node.js)
+
+* Express.js API
+* PostgreSQL integration
+* JWT-ready structure
+* Containerized & scalable
+
+## 🎨 Front-end (React)
+
+* Vite lightning-fast dev server
+* Component-based architecture
+* TypeScript everywhere
+* Production optimized builds
+
+## 🧠 Worker (Python)
+
+* Designed for AI/ML extensions
+  -Image processing, color extraction, embeddings
+* Runs in isolated worker container
+
+---
+
+# 📦 **Production Deployment**
+
+### **Build + Deploy**
 
 ```bash
-# common frameworks differ, e.g. Django / Flask / FastAPI
-# Django example
-python manage.py runserver
+docker-compose -f docker-compose.prod.yml build
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-Configuration
-
-- Add environment variables as needed (create a .env from .env.example if present)
-- Connect any required external services (database, cloud storage for images, auth providers)
-
-Tests
+### **View logs**
 
 ```bash
-# JavaScript
-npm test
-
-# Python
-pytest
+docker-compose -f docker-compose.prod.yml logs -f backend
 ```
 
-Deployment
+### **Roll updates**
 
-- Docker: build and run the provided Dockerfile if present
-- Hosting: Deploy to the platform of your choice (Heroku, Vercel, Render, AWS, etc.)
-
-Project structure (example)
-
-```
-├── README.md
-├── package.json / pyproject.toml
-├── src/ or app/
-│   ├── components/ or routes/
-│   └── ...
-├── public/ or static/
-├── tests/
-└── docs/
+```bash
+git pull
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
-Contributing
+---
 
-Thanks for considering contributing! Please follow these general guidelines:
+# 📡 **Monitoring & Observability**
 
-1. Fork the repository and create a feature branch (git checkout -b feature/name)
-2. Write tests for new functionality
-3. Keep commits small and focused
-4. Open a pull request describing your changes
+DigiCloset supports monitoring via **Prometheus** (with optional Grafana):
 
-If you maintain an issue tracker, link to it here and mention labels used for good-first-issue / help-wanted.
+```
+monitoring/
+└── prometheus.yml
+```
 
-License
+Add service metrics → generate dashboards → ship to Grafana Cloud or Dockerized Grafana.
 
-Specify the license used by this project (e.g., MIT, Apache-2.0). If no license is set, add one or update this section.
+---
 
-Support / Contact
+# 🧬 **Environment Variables**
 
-For questions or help, open an issue or contact the maintainer: @aditisingh2310
+All configuration is stored in `.env`:
 
-Acknowledgements
+```
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+DATABASE_URL=
+JWT_SECRET=
+```
 
-- Add libraries, assets, or resources used in this project
+🚫 Do **not** commit real secrets.
+
+---
+
+# 🛣️ **Roadmap**
+
+Here’s what’s coming next:
+
+🔹 AI outfit recommendations
+🔹 Auto-tagging for clothing & colors
+🔹 Wardrobe statistics & insights
+🔹 Mobile PWA experience
+🔹 User themes (light/dark)
+🔹 Drag-and-drop outfit builder
+
+---
+
+# 🤝 **Contributing**
+
+We welcome pull requests!
+Follow the standard GitHub flow:
+
+1. Fork the repo
+2. Create a feature branch
+3. Submit a PR
+
+---
+
+# 📄 **License**
+
+This project is licensed under the **MIT License**.
+
+---
+
+# 🌈 Want It Even Better?
+
+ Join the movement shaping the future of digital fashion — your contribution could spark the next breakthrough
+
