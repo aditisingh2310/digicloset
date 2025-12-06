@@ -5,8 +5,8 @@
   "description": "digicloset — upgrade pack scaffold",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "cd \"DIGICLOSET /\" && npm ci && npm run dev",
-    "build": "cd \"DIGICLOSET /\" && npm ci && npm run build",
+    "dev": "cd DIGICLOSET && npm ci && npm run dev",
+    "build": "cd DIGICLOSET && npm ci && npm run build",
     "start": "node dist/index.js",
     "lint": "eslint 'src/**/*.{ts,tsx,js,jsx}' --fix",
     "test": "jest --coverage",
