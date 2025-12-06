@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "cd \"DIGICLOSET /\" && npm run dev",
-    "build": "cd \"DIGICLOSET /\" && npm run build",
+    "build": "cd \"DIGICLOSET /\" && npm ci && npm run build",
     "start": "node dist/index.js",
     "lint": "eslint 'src/**/*.{ts,tsx,js,jsx}' --fix",
     "test": "jest --coverage",
