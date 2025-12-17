@@ -1,0 +1,10 @@
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Build and Deploy
+          image: node:20
+          script:
+            - npm ci
+            - npm run build
+            # Add deployment step here (e.g., rsync to server, upload to S3, or call Netlify/Vercel)

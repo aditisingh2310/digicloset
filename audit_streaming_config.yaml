@@ -1,0 +1,9 @@
+audit_streaming:
+  enabled: true
+  provider: datadog
+  endpoint: https://http-intake.logs.datadoghq.com/v1/input
+  api_key: <your-api-key>
+  streams:
+    - auth_events
+    - file_uploads
+    - tryon_requests

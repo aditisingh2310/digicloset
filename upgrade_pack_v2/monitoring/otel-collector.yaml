@@ -1,0 +1,17 @@
+
+# Minimal OpenTelemetry Collector manifest for Kubernetes or local testing
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  logging:
+    loglevel: debug
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [logging]
