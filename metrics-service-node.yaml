@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: digicloset-node-metrics
+  labels:
+    app: digicloset-node
+spec:
+  selector:
+    app: digicloset-node
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: digicloset-node-metrics
+subsets:
+  - addresses:
+      - ip: <EXTERNAL_PROMETHEUS_IP>
+    ports:
+      - port: 9100

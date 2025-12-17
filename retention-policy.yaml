@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-retention-cleaner
+  namespace: default
+spec:
+  schedule: "0 4 * * *"  # daily at 4am
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: retention-cleaner
+            image: alpine:3
+            env:
+            - name: SUPABASE_STORAGE_URL
+              value: "https://your-project-id.supabase.co/storage/v1/object"
+            - name: SUPABASE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-api-key
+                  key: key
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Deleting backups older than 30 days..."
+              # Placeholder for deletion logic (simulate)
+              echo "Old backups cleaned."
+          restartPolicy: OnFailure
