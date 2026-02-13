@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -22,9 +26,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker image (${{ matrix.name }})
+
+      - name: Validate build inputs (${{ matrix.name }})
+        shell: bash
         run: |
-          docker build \
-            "${{ matrix.context }}" \
-            --file "${{ matrix.dockerfile }}" \
-            --tag "${{ matrix.name }}:${{ github.sha }}"
+          set -euo pipefail
+          test -d "${{ matrix.context }}"
+          test -f "${{ matrix.dockerfile }}"
+
+      - name: Build Docker image (${{ matrix.name }}) with retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if docker build \
+              "${{ matrix.context }}" \
+              --file "${{ matrix.dockerfile }}" \
+              --tag "${{ matrix.name }}:${{ github.sha }}"; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Retrying docker build for ${{ matrix.name }} (attempt $attempt failed)"
+              sleep 10
+            fi
+          done
+
+          echo "Docker build failed after 3 attempts for ${{ matrix.name }}"
+          exit 1
