@@ -34,3 +34,9 @@ jobs:
             "${{ matrix.context }}" \
             --file "${{ matrix.dockerfile }}" \
             --tag "${{ matrix.name }}:${{ github.sha }}"
+
+      - name: Run E2E Tests (Backend Only)
+        if: matrix.name == 'backend'
+        run: |
+          chmod +x run_tests.sh
+          ./run_tests.sh "${{ matrix.name }}:${{ github.sha }}"

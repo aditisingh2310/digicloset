@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Run Tests locally using Docker to avoid local env usage (WSL Version)
+echo "Running End-to-End Tests via Docker..."
+
+# Create a dedicated network
+docker network create digicloset-test-net
+
+# Function to cleanup
+cleanup() {
+    echo "Cleaning up..."
+    echo "--- BACKEND LOGS ---"
+    docker logs backend
+    echo "--------------------"
+    docker stop backend 2>/dev/null
+    docker rm backend 2>/dev/null
+    docker network rm digicloset-test-net 2>/dev/null
+}
+
+# Trap exit to ensure cleanup runs
+trap cleanup EXIT
+
+# 1. Start Backend in background
+echo "Starting Backend..."
+IMAGE_NAME=${1:-backend:test}
+echo "Using image: $IMAGE_NAME"
+# Run with name 'backend' on the network
+docker run -d --name backend --network digicloset-test-net "$IMAGE_NAME"
+
+# Wait for startup (simple sleep)
+sleep 10
+
+# 2. Run Tests in a temporary container
+echo "Running Tests..."
+# Mount tests dir, install deps, and run. 
+# Set API_BASE_URL to http://backend:8000 because they are on the same network.
+# Using $(pwd)/tests for current directory
+docker run --rm --network digicloset-test-net -v "$(pwd)/tests:/tests" -e API_BASE_URL=http://backend:8000 python:3.11-slim sh -c "pip install requests python-dotenv && echo 'Starting Python Test Script...' && python -u /tests/unit/test_end_to_end.py"
