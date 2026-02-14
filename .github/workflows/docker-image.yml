@@ -14,16 +14,16 @@ jobs:
       matrix:
         include:
           - name: model-service
-            context: ./digicloset-upgrade-pack
+            context: ./digicloset-upgrade-pack/model-service
             dockerfile: ./digicloset-upgrade-pack/model-service/Dockerfile
           - name: model-service-complete
-            context: ./digicloset-upgrade-pack-complete
+            context: ./digicloset-upgrade-pack-complete/model-service
             dockerfile: ./digicloset-upgrade-pack-complete/model-service/Dockerfile
           - name: backend
-            context: ./digicloset-upgrade-pack
+            context: ./digicloset-upgrade-pack/backend
             dockerfile: ./digicloset-upgrade-pack/backend/Dockerfile
           - name: backend-complete
-            context: ./digicloset-upgrade-pack-complete
+            context: ./digicloset-upgrade-pack-complete/backend
             dockerfile: ./digicloset-upgrade-pack-complete/backend/Dockerfile
 
     steps:
