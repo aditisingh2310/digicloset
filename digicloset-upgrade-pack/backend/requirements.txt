@@ -1,0 +1,15 @@
+fastapi[all]==0.95.2
+uvicorn==0.22.0
+sqlalchemy
+alembic
+databases[postgresql]
+psycopg2-binary
+python-jose
+passlib[bcrypt]
+python-multipart
+boto3
+pydantic
+aiofiles
+redis
+pytest
+httpx

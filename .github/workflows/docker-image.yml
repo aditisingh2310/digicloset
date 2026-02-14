@@ -1,0 +1,42 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: model-service
+            context: ./digicloset-upgrade-pack
+            dockerfile: ./digicloset-upgrade-pack/model-service/Dockerfile
+          - name: model-service-complete
+            context: ./digicloset-upgrade-pack-complete
+            dockerfile: ./digicloset-upgrade-pack-complete/model-service/Dockerfile
+          - name: backend
+            context: ./digicloset-upgrade-pack
+            dockerfile: ./digicloset-upgrade-pack/backend/Dockerfile
+          - name: backend-complete
+            context: ./digicloset-upgrade-pack-complete
+            dockerfile: ./digicloset-upgrade-pack-complete/backend/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image (${{ matrix.name }})
+        run: |
+          docker build \
+            "${{ matrix.context }}" \
+            --file "${{ matrix.dockerfile }}" \
+            --tag "${{ matrix.name }}:${{ github.sha }}"
+
+      - name: Run E2E Tests (Backend Only)
+        if: matrix.name == 'backend'
+        run: |
+          chmod +x run_tests.sh
+          ./run_tests.sh "${{ matrix.name }}:${{ github.sha }}"
