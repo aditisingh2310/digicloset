@@ -10,7 +10,8 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "test": "vitest",
-        "test:offline": "powershell -ExecutionPolicy Bypass -File ./run_tests_offline.ps1"
+        "test:offline": "powershell -ExecutionPolicy Bypass -File ./run_tests_offline.ps1",
+        "test:db": "powershell -ExecutionPolicy Bypass -File ./scripts/db_smoke_verify.ps1"
     },
     "dependencies": {
         "lucide-react": "^0.344.0",
