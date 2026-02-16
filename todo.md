@@ -24,3 +24,33 @@
    - Add strict input validation for analyze endpoints.
    - Add authorization checks before metafield writes.
    - Add rate limiting, idempotency keys, and request correlation IDs.
+
+7. **Align database migration strategy documentation**
+   - `docs/README.md` currently references Alembic while the repo uses Prisma + SQL/Supabase patterns.
+   - Pick one canonical migration path and update docs to match.
+
+8. **Complete Prisma schema scaffolding**
+   - `prisma/schema.prisma` currently has only a model definition.
+   - Add canonical `datasource` and `generator` blocks and document naming/index conventions.
+
+9. **Add indexes and constraints for AI results**
+   - Add indexes on `shop`, `productId`, and `createdAt` in `AiResult`.
+   - Add a composite index for common query patterns (for example `(shop, productId, createdAt)`).
+   - Add a dedupe guard strategy (unique key or request-id-based uniqueness) for repeat writes.
+
+10. **Standardize SQL timestamp semantics**
+    - Normalize SQL usage to timezone-aware timestamps (`TIMESTAMPTZ`) and UTC.
+    - Ensure SQL scripts and Prisma models use consistent time semantics.
+
+11. **Harden consent tracking table integrity**
+    - Add integrity checks (for example `revoked_at >= granted_at` when present).
+    - Add indexes for frequent lookups (for example `user_id`, `consent_type`, `granted_at`).
+    - Consider controlled values for `consent_type` (enum or reference table).
+
+12. **Create and enforce migration folder workflow**
+    - Create a canonical `db/migrations/` structure in-repo.
+    - Define migration naming format and rollback policy in docs.
+
+13. **Add offline-safe database smoke verification**
+    - Add local checks for Prisma schema validation and SQL script sanity.
+    - Add a minimal migration dry-run path for local/CI validation without full Docker dependency.
