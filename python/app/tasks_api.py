@@ -85,3 +85,35 @@ def shopify_callback(request: Request):
     # Save shop + token to DB here
 
     return {"status": "installed"}
+@router.post("/shopify/webhook/app-uninstalled")
+async def app_uninstalled(request: Request):
+    shop = request.headers.get("x-shopify-shop-domain")
+
+    # delete shop from DB
+    # delete related data
+
+    return {"status": "deleted"}
+    @router.post("/shopify/create-subscription")
+def create_subscription(shop: str):
+
+    mutation = """
+    mutation {
+      appSubscriptionCreate(
+        name: "Pro Plan"
+        returnUrl: "https://yourapp.com/confirm"
+        test: true
+        lineItems: [{
+          plan: {
+            appRecurringPricingDetails: {
+              price: { amount: 19.0, currencyCode: USD }
+              interval: EVERY_30_DAYS
+            }
+          }
+        }]
+      ) {
+        confirmationUrl
+      }
+    }
+    """
+
+    # send GraphQL request using stored shop token
