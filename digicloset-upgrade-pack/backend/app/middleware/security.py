@@ -175,11 +175,10 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
         # Sanitize query parameters
         for key, value in request.query_params.items():
             if _DANGEROUS_CHARS.search(value):
-                logger.warning(f"Suspicious query parameter detected: {key}={value}")
+                logger.warning(f"Suspicious query parameter detected: {key}=<redacted>")
                 return JSONResponse(
                     status_code=400,
                     content={"detail": f"Query parameter '{key}' contains forbidden characters"}
                 )
-
         response = await call_next(request)
         return response

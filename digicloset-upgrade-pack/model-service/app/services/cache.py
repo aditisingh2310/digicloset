@@ -65,15 +65,15 @@ class LRUCache:
     @property
     def stats(self) -> dict:
         """Returns cache statistics."""
-        total = self._hits + self._misses
-        return {
-            "size": len(self._cache),
-            "max_size": self.max_size,
-            "hits": self._hits,
-            "misses": self._misses,
-            "hit_rate": round(self._hits / total, 3) if total > 0 else 0.0,
-        }
-
+        with self._lock:
+            total = self._hits + self._misses
+            return {
+                "size": len(self._cache),
+                "max_size": self.max_size,
+                "hits": self._hits,
+                "misses": self._misses,
+                "hit_rate": round(self._hits / total, 3) if total > 0 else 0.0,
+            }
     def clear(self):
         """Clear all cached entries."""
         with self._lock:

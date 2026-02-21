@@ -68,8 +68,12 @@ class RankingService:
             item_vector_np = np.array(item_vector, dtype=np.float32)
             
             # Calculate cosine similarity between user profile and item
-            personalization_score = float(np.dot(user_vector, item_vector_np))
-            
+            item_norm = np.linalg.norm(item_vector_np)
+            user_norm = np.linalg.norm(user_vector)
+            if item_norm > 0 and user_norm > 0:
+                personalization_score = float(np.dot(user_vector, item_vector_np) / (user_norm * item_norm))
+            else:
+                personalization_score = 0.0            
             # Combine scores
             final_score = (alpha * original_score) + ((1.0 - alpha) * personalization_score)
             

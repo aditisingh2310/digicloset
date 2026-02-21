@@ -13,5 +13,5 @@ aiofiles
 redis
 pytest
 httpx
-openai
-slowapi
+openai==2.21.0
+slowapi==0.1.9

@@ -78,9 +78,8 @@ class ColorExtractor:
         foreground_pixels = np.array(foreground_pixels)
         
         # Fallback if image was entirely background (e.g. solid color)
-        if len(foreground_pixels) < num_colors:
+        if len(foreground_pixels) == 0 or len(foreground_pixels) < num_colors:
             foreground_pixels = pixels
-
         # Cluster the foreground pixels
         kmeans = KMeans(n_clusters=num_colors, n_init='auto', random_state=42)
         kmeans.fit(foreground_pixels)
