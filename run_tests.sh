@@ -26,14 +26,20 @@ trap cleanup EXIT
 
 # 1. Start Model Service in background
 echo "Starting Model Service..."
-docker run -d --name model-service --network digicloset-test-net model-service:test
+mkdir -p "$(pwd)/.model_cache/huggingface"
+mkdir -p "$(pwd)/.model_cache/u2net"
+docker run -d --name model-service \
+  --network digicloset-test-net \
+  -v "$(pwd)/.model_cache/huggingface:/root/.cache/huggingface" \
+  -v "$(pwd)/.model_cache/u2net:/root/.u2net" \
+  model-service:test
 
 # 2. Start Backend in background
 echo "Starting Backend..."
 IMAGE_NAME=${1:-backend:test}
 echo "Using image: $IMAGE_NAME"
 # Run with name 'backend' on the network and link to model-service
-docker run -d --name backend --network digicloset-test-net -e MODEL_SERVICE_URL="http://model-service:8001/predict" "$IMAGE_NAME"
+docker run -d --name backend --network digicloset-test-net -e MODEL_SERVICE_URL="http://model-service:8001/predict" -e EMBEDDING_TEXT_SEARCH_URL="http://model-service:8001/embeddings/search-text" -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" "$IMAGE_NAME"
 
 # Wait for startup (simple sleep)
 sleep 10
@@ -43,4 +49,4 @@ echo "Running Tests..."
 # Mount tests dir, install deps, and run. 
 # Set API_BASE_URL to http://backend:8000 because they are on the same network.
 # Using $(pwd)/tests for current directory
-docker run --rm --network digicloset-test-net -v "$(pwd)/tests:/tests" -e API_BASE_URL=http://backend:8000 python:3.11-slim sh -c "pip install requests python-dotenv pytest && echo 'Starting Python Test Script...' && pytest -q /tests/unit/test_end_to_end.py"
+docker run --rm --network digicloset-test-net -v "$(pwd)/tests:/tests" -e API_BASE_URL=http://backend:8000 python:3.11-slim sh -c "pip install requests python-dotenv pytest pillow && echo 'Starting Python Test Script...' && pytest -v /tests/unit/test_colors.py /tests/unit/test_embeddings.py /tests/unit/test_ranking.py /tests/unit/test_bg_removal.py /tests/unit/test_cross_sell.py > /tests/pytest.log 2>&1"

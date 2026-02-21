@@ -4,3 +4,11 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .agent/
+
+# Testing and Caching
+.pytest_cache/
+.model_cache/
+*.log
+/tests/pytest.log
+.idea/
+.vscode/
