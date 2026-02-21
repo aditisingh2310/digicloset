@@ -57,7 +57,12 @@ class RankingService:
             # Fetch item vector from FAISS to compare with user profile
             item_vector = self.vector_store.get_embedding(item_id)
             if item_vector is None:
-                ranked_candidates.append(candidate)
+                ranked_candidates.append({
+                    "id": item_id,
+                    "score": original_score,
+                    "original_score": original_score,
+                    "personalization_score": None
+                })
                 continue
                 
             item_vector_np = np.array(item_vector, dtype=np.float32)
@@ -73,7 +78,6 @@ class RankingService:
                 "score": final_score,
                 "original_score": original_score,
                 "personalization_score": personalization_score
-            })
-            
+            })            
         # Sort by final score descending
         return sorted(ranked_candidates, key=lambda x: x["score"], reverse=True)

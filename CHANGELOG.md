@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Intelligent Recommendations**: Planned integration of OpenCLIP (ViT-B-32) for multimodal semantic image embeddings.
-- **Vector Storage**: Planned integration of local FAISS (Facebook AI Similarity Search) index for efficient and free similarity search.
+- **Intelligent Recommendations**: Integrated OpenCLIP (ViT-B-32) for multimodal semantic image embeddings.
+- **Vector Storage**: Integrated local FAISS (Facebook AI Similarity Search) index for efficient and free similarity search.
 - **Project Governance**: Established `REPOSITORY_RULES.md` update, `docs/model_registry.yaml`, and updated `README.md` with new governance framework (Cost Tracking, Model Registry, Experimentation Protocols).
 - **CI/CD**: Added backend build jobs to `.github/workflows/docker-image.yml` to ensure backend services are built and tested in the CI pipeline.
 - **Scripts**: Added `local_verification.ps1` PowerShell script to facilitate local testing of Docker builds for all services (model-service, backend) in both upgrade packs.

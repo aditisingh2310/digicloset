@@ -101,6 +101,8 @@ from pydantic import BaseModel
 @app.post('/embeddings/generate')
 async def generate_embedding(image: UploadFile = File(...)):
     """Generate and return a 512d OpenCLIP vector for an image."""
+    if embedding_service is None:
+        raise HTTPException(status_code=503, detail="Embedding service unavailable")
     try:
         image_bytes = await image.read()
         vector = embedding_service.generate_embedding(image_bytes)
@@ -115,6 +117,10 @@ async def add_embedding(
     image: UploadFile = File(...)
 ):
     """Generate an embedding for the image and permanently store it in FAISS with the given item_id."""
+    if embedding_service is None:
+        raise HTTPException(status_code=503, detail="Embedding service unavailable")
+    if vector_store is None:
+        raise HTTPException(status_code=503, detail="Vector store unavailable")
     try:
         image_bytes = await image.read()
         vector = embedding_service.generate_embedding(image_bytes)

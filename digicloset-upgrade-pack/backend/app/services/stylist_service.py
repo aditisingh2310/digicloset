@@ -1,5 +1,6 @@
 import os
 import base64
+import imghdr
 from openai import AsyncOpenAI
 import logging
 
@@ -16,6 +17,12 @@ client = AsyncOpenAI(
     api_key=OPENROUTER_API_KEY,
 )
 
+def _get_image_mime_type(image_bytes: bytes) -> str:
+    """Detect image MIME type from bytes."""
+    img_type = imghdr.what(None, h=image_bytes)
+    mime_map = {"jpeg": "image/jpeg", "png": "image/png", "gif": "image/gif", "webp": "image/webp"}
+    return mime_map.get(img_type, "image/jpeg")  # fallback to jpeg
+
 async def generate_cross_sell_query(image_bytes: bytes) -> str:
     """
     Passes an image to an OpenRouter vision model to generate a strictly textual query
@@ -24,8 +31,8 @@ async def generate_cross_sell_query(image_bytes: bytes) -> str:
     try:
         # Encode image to base64 string
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
-        image_url = f"data:image/jpeg;base64,{base64_image}"
-        
+        mime_type = _get_image_mime_type(image_bytes)
+        image_url = f"data:{mime_type};base64,{base64_image}"        
         # System prompt restricting output to basic keyword query
         system_prompt = (
             "You are an expert fashion stylist. I am giving you an image of a garment. "
