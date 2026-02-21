@@ -6,12 +6,14 @@ DigiCloset is a Shopify custom/private app for merchants. It uses AI to generate
 ## What It Does
 - Analyzes your Shopify product catalog
 - Suggests AI-powered outfit bundles (tops, bottoms, accessories, etc.)
+- Employs an LLM-powered **Digital Stylist** for cross-sell recommendations
 - Designed for Shopify merchants and store staff
 - Simple, focused, and production-ready for merchant use
 
 ## API Contract
 - Canonical application API routes use `/api/v1/...`.
 - Primary analyze endpoint: `/api/v1/analyze`.
+- Styling endpoint: `/api/v1/garments/{item_id}/cross-sell`.
 - Legacy endpoint `/api/analyze` is compatibility-only and will be removed in a future cleanup.
 
 ## How to Use
@@ -75,7 +77,16 @@ Set the following in your `.env`:
 ```bash
 INFERENCE_PROVIDER=local  # or 'novita'
 NOVITA_API_KEY=your_key_here
+OPENROUTER_API_KEY=your_openrouter_key  # Required for Llama Vision Stylist
 ```
+
+### Core AI Features (DigiCloset Upgrade Pack)
+The DigiCloset stack relies heavily on several containerized Machine Learning capabilities inside `model-service`:
+- **Visual Similarity Search**: OpenCLIP (ViT-B-32) + FAISS for semantic image-to-image and text-to-image vector matching.
+- **Background Removal**: `rembg` (U-2-Net) for automatic product isolation and standardization.
+- **Color Extraction**: KMeans clustering implemented over LAB color spaces to construct fashion palettes.
+- **Personalization Engine**: Custom behavior-based ranker using a decay-driven engagement scoring metric.
+- **AI Digital Stylist**: OpenRouter Integration (Llama 3.2 11B Vision) to orchestrate cross-item complementary matches (e.g. matching a jacket to an uploaded shirt).
 
 ### Experiment Protocol
 1. **Define Strategy**: Check `docs/model_registry.yaml` for current baselines.

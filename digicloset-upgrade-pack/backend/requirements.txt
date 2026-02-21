@@ -13,3 +13,4 @@ aiofiles
 redis
 pytest
 httpx
+openai
