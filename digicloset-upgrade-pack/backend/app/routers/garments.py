@@ -1,8 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 import httpx
 import os
 from app.services.stylist_service import generate_cross_sell_query
+from app.middleware.security import sanitize_item_id
+
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -16,11 +22,13 @@ RANKING_RANK_URL = os.getenv("RANKING_RANK_URL", "http://model-service:8001/rank
 RANKING_INTERACTION_URL = os.getenv("RANKING_INTERACTION_URL", "http://model-service:8001/ranking/interaction")
 
 @router.get("/{item_id}/cross-sell")
-async def get_cross_sell_recommendations(item_id: str, top_k: int = 5):
+@limiter.limit("10/minute")
+async def get_cross_sell_recommendations(request: Request, item_id: str, top_k: int = 5):
     """
     Given a locally stored garment image, uses a Vision LLM to deduce complementary styling 
     options, tracking down the exact vector neighbors in FAISS via text-to-image semantic search.
     """
+    sanitize_item_id(item_id)
     image_path = os.path.join(UPLOAD_DIR, item_id)
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="Garment image not found locally to analyze")
@@ -62,6 +70,7 @@ async def get_similar_garments(item_id: str, top_k: int = 5, user_id: str = None
     Finds semantically similar garments by querying the model-service FAISS vector database.
     If a user_id is provided, candidates are re-ranked using the user's personalization profile.
     """
+    sanitize_item_id(item_id)
     image_path = os.path.join(UPLOAD_DIR, item_id)
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="Garment image not found locally to query")
@@ -130,6 +139,7 @@ async def get_garment_colors(item_id: str, num_colors: int = 3):
     """
     Extracts the dominant fashion colors of a garment by querying the model-service.
     """
+    sanitize_item_id(item_id)
     image_path = os.path.join(UPLOAD_DIR, item_id)
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="Garment image not found locally to query")
@@ -157,11 +167,13 @@ async def get_garment_colors(item_id: str, num_colors: int = 3):
 BG_REMOVAL_URL = os.getenv("BG_REMOVAL_URL", "http://model-service:8001/images/remove-bg")
 
 @router.post("/{item_id}/remove-bg")
-async def remove_garment_background(item_id: str, bg_color: str = None):
+@limiter.limit("5/minute")
+async def remove_garment_background(request: Request, item_id: str, bg_color: str = None):
     """
     Strips the background of a garment using the AI model-service.
     Overwrites the local image with a transparent PNG or solid composite.
     """
+    sanitize_item_id(item_id)
     image_path = os.path.join(UPLOAD_DIR, item_id)
     if not os.path.exists(image_path):
         raise HTTPException(status_code=404, detail="Garment image not found locally")

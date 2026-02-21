@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Added maintainer information for Aditi Singh to `package.json`, `README.md`, and `CONTRIBUTING.md`.
 - **Backend Configuration**: Restored missing `requirements.txt` and `Dockerfile` for `digicloset-upgrade-pack/backend` and `digicloset-upgrade-pack-complete/backend`.
 - **Model Service Configuration**: Restored missing `requirements.txt` for `digicloset-upgrade-pack/model-service` and `digicloset-upgrade-pack-complete/model-service`.
+- **Security Middleware**: SSRF protection, magic-byte MIME validation, file extension allowlist, path traversal guards, and input sanitization.
+- **Rate Limiting**: `slowapi` integration with per-endpoint limits (10/min cross-sell, 5/min bg-removal).
+- **Performance**: Image auto-resize to 512px, SHA-256 keyed LRU cache for embeddings and colors.
+- **Observability**: Prometheus-style `/metrics` endpoint, `/health` and `/ready` probes with cache statistics.
+- **Architecture**: C4 model documentation (`docs/ARCHITECTURE.md`), model versioning strategy (`docs/MODEL_VERSIONS.md`).
+- **Testing**: Added `test_security.py` (MIME, path traversal, size guard) and `test_performance.py` (cache, latency, metrics).
 
 ### Changed
 - **Dockerfiles**: Updated `digicloset-upgrade-pack/model-service/Dockerfile` and `digicloset-upgrade-pack-complete/model-service/Dockerfile` to use correct `COPY` paths relative to the build context.

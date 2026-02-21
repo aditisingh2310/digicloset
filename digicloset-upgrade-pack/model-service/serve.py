@@ -14,11 +14,21 @@ from app.services.vector_store import VectorStore
 from app.services.color_extractor import ColorExtractor
 from app.services.ranking_service import RankingService
 from app.services.bg_removal_service import BackgroundRemovalService
+from app.services.image_utils import preprocess_image, compute_image_hash
+from app.services.cache import embedding_cache, color_cache
 import logging
+from app.middleware.metrics import MetricsMiddleware, get_metrics_summary
+from app.routers.health import router as health_router
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.APP_NAME)
+
+# ── Metrics Middleware ──
+app.add_middleware(MetricsMiddleware)
+
+# ── Health & Readiness Probes ──
+app.include_router(health_router)
 
 # Initialize global services lazily to avoid blocking import
 embedding_service = None
@@ -26,6 +36,8 @@ vector_store = None
 color_extractor = None
 ranking_service = None
 bg_removal_service = None
+
+MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10MB guard for model-service
 
 # Pydantic models for incoming requests
 class InteractionRequest(BaseModel):
@@ -96,6 +108,11 @@ def root():
         "embeddings_active": embedding_service is not None
     }
 
+@app.get('/metrics')
+async def metrics():
+    """Returns Prometheus-compatible metrics summary."""
+    return JSONResponse(content=get_metrics_summary())
+
 from pydantic import BaseModel
 
 @app.post('/embeddings/generate')
@@ -105,8 +122,22 @@ async def generate_embedding(image: UploadFile = File(...)):
         raise HTTPException(status_code=503, detail="Embedding service unavailable")
     try:
         image_bytes = await image.read()
-        vector = embedding_service.generate_embedding(image_bytes)
+        if len(image_bytes) > MAX_UPLOAD_SIZE_BYTES:
+            raise HTTPException(status_code=400, detail="Image exceeds 10MB limit")
+        
+        # Check cache first
+        img_hash = compute_image_hash(image_bytes)
+        cached = embedding_cache.get(img_hash)
+        if cached is not None:
+            return JSONResponse(content={"embedding": cached, "cache": "hit"})
+        
+        # Preprocess and generate
+        processed = preprocess_image(image_bytes)
+        vector = embedding_service.generate_embedding(processed)
+        embedding_cache.put(img_hash, vector)
         return JSONResponse(content={"embedding": vector})
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating embedding: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -123,9 +154,23 @@ async def add_embedding(
         raise HTTPException(status_code=503, detail="Vector store unavailable")
     try:
         image_bytes = await image.read()
-        vector = embedding_service.generate_embedding(image_bytes)
+        if len(image_bytes) > MAX_UPLOAD_SIZE_BYTES:
+            raise HTTPException(status_code=400, detail="Image exceeds 10MB limit")
+        
+        # Check cache first
+        img_hash = compute_image_hash(image_bytes)
+        cached = embedding_cache.get(img_hash)
+        if cached is not None:
+            vector = cached
+        else:
+            processed = preprocess_image(image_bytes)
+            vector = embedding_service.generate_embedding(processed)
+            embedding_cache.put(img_hash, vector)
+        
         vector_store.add_item(item_id, vector)
         return JSONResponse(content={"status": "success", "item_id": item_id, "message": "Added to Vector DB"})
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error adding embedding: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

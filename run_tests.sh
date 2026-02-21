@@ -49,4 +49,4 @@ echo "Running Tests..."
 # Mount tests dir, install deps, and run. 
 # Set API_BASE_URL to http://backend:8000 because they are on the same network.
 # Using $(pwd)/tests for current directory
-docker run --rm --network digicloset-test-net -v "$(pwd)/tests:/tests" -e API_BASE_URL=http://backend:8000 python:3.11-slim sh -c "pip install requests python-dotenv pytest pillow && echo 'Starting Python Test Script...' && pytest -v /tests/unit/test_colors.py /tests/unit/test_embeddings.py /tests/unit/test_ranking.py /tests/unit/test_bg_removal.py /tests/unit/test_cross_sell.py > /tests/pytest.log 2>&1"
+docker run --rm --network digicloset-test-net -v "$(pwd)/tests:/tests" -e API_BASE_URL=http://backend:8000 -e MODEL_SERVICE_URL=http://model-service:8001 -e BACKEND_URL=http://backend:8000 python:3.11-slim sh -c "pip install requests python-dotenv pytest pillow && echo 'Starting Python Test Script...' && pytest -v /tests/unit/test_colors.py /tests/unit/test_embeddings.py /tests/unit/test_ranking.py /tests/unit/test_bg_removal.py /tests/unit/test_cross_sell.py /tests/unit/test_security.py /tests/unit/test_performance.py > /tests/pytest.log 2>&1"

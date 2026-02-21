@@ -52,9 +52,15 @@ DigiCloset is a Shopify custom/private app for merchants. It uses AI to generate
 ## Key Folders
 - **digicloset-upgrade-pack/**: Contains the main backend `app/`, `model-service/`, and infrastructure configurations for the standard deployment.
 - **digicloset-upgrade-pack-complete/**: Contains the complete version of the upgrade pack with additional features or configurations.
+- **docs/**: Project documentation including [ARCHITECTURE.md](docs/ARCHITECTURE.md) (C4 model) and [MODEL_VERSIONS.md](docs/MODEL_VERSIONS.md).
 - **ai-service-layer/**: Logic for the AI-powered outfit bundle generation.
 - **config/**: Configuration files for the application and integrations.
 - **legacy/upgrade packs** (`upgrade-pack*`, `enterprise_upgrade_pack*`, `ultimate-enterprise-pack`, `security_hardening_pack_v1`): archive/reference content and non-primary route sets.
+
+## Observability
+- **Metrics**: `GET /metrics` on model-service (port 8001) — request counts, error rates, latency histograms.
+- **Health**: `GET /health` — liveness probe with cache stats and uptime.
+- **Readiness**: `GET /ready` — returns 503 until all ML models are loaded.
 
 ## For Developers
 - **Focus**: Keep all features focused on the Shopify merchant experience.
