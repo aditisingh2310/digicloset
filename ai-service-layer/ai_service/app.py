@@ -367,3 +367,28 @@ async def analyze(
             request_id=request_id
         )
         raise
+        img = Image.open(io.BytesIO(content)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    dominant = _dominant_color_hex(img)
+    palette = _palette_hex(img, max_colors=5)
+
+    local = await _analyze_local_pytorch(img)
+    if local:
+        recs = ["Local model analysis: use result as higher-confidence guidance."]
+        return {"colors": palette, "dominant_color": dominant, "fitScore": local["fitScore"], "recommendations": recs, "method": local.get("method")}
+
+    hf_res = _call_hf_inference(content)
+    if hf_res is not None:
+        fit_score = 0.75
+        recs = ["Hugging Face inference used; treat as medium confidence." ]
+        return {"colors": palette, "dominant_color": dominant, "fitScore": fit_score, "recommendations": recs, "method": "huggingface"}
+
+    unique_colors = len(np.unique(np.array(img).reshape(-1,3), axis=0))
+    fit_score = max(0.3, 1.0 - unique_colors/500.0)
+    recs = ["Heuristic fallback: low confidence. Install PyTorch or set HF_API_KEY for better results."]
+    return {"colors": palette, "dominant_color": dominant, "fitScore": float(fit_score), "recommendations": recs, "method": "heuristic"}
+from app.api import feedback
+
+app.include_router(feedback.router, prefix="/api/v1")

@@ -3,6 +3,17 @@
 
 DigiCloset is a Shopify custom/private app for merchants. It uses AI to generate “Complete the Look” outfit bundles from your product catalog, helping you increase average order value and deliver personalized shopping experiences.
 
+## Shopify Production System
+
+This repository contains a production Shopify embedded app. Active, production-ready Shopify logic lives in the following directories:
+
+- `shopify-app-core/` — App Bridge + OAuth, webhook receivers, and storefront widget integration.
+- `app/` — Python FastAPI backend (API surface, AI inference services, and merchant-facing endpoints).
+- `shopify-billing/` and `backend/` — Billing scaffolding and billing-related service code.
+
+Other top-level folders (for example `archive/`, `digicloset-upgrade-pack-complete/`, `digicloset-upgrade-pack/`, `frontend_clear/`, and various `deprecated_archive/` folders) contain experimental, archival, or scaffold code and are not required for a standard production install. Treat those directories as reference or in-progress work.
+
+
 ## What It Does
 - Analyzes your Shopify product catalog
 - Suggests AI-powered outfit bundles (tops, bottoms, accessories, etc.)
@@ -61,3 +72,30 @@ DigiCloset is a Shopify custom/private app for merchants. It uses AI to generate
 
 ## Support
 Open an issue or contact the maintainer, **Aditi Singh** ([@aditisingh2310](https://github.com/aditisingh2310)), for assistance with Shopify integration or merchant onboarding.
+
+## Project Governance & Experimentation
+We follow a strict governance framework for Virtual Try-On experimentation to ensure reproducibility and cost efficiency.
+
+### Architecture Overview
+The system uses a **Provider Abstraction** layer to switch between:
+- **Local Inference**: `Stable Diffusion 1.5` + ControlNet (Baseline, Free).
+- **Cloud Inference**: `SD 3.5 Large Turbo` via Novita AI (Comparison, Paid).
+
+### Environment Variables
+Set the following in your `.env`:
+```bash
+INFERENCE_PROVIDER=local  # or 'novita'
+NOVITA_API_KEY=your_key_here
+```
+
+### Experiment Protocol
+1. **Define Strategy**: Check `docs/model_registry.yaml` for current baselines.
+2. **Run Experiment**: Use the evaluation harness to generate images and compute metrics (SSIM, Keypoint Deviation).
+3. **Log Results**: All runs must be logged in `docs/experiments/` with quantitative results.
+4. **Cost**: Check `cost_strategy_summary` before running large batches on paid providers.
+
+### Cost Strategy Summary
+- **Limit**: Max 20 experiment runs / 30 demo runs per cycle on paid providers.
+- **Logging**: All paid calls log timestamp, model, and credit estimate.
+- **Fallback**: System automatically falls back to `local` provider on API errors.
+

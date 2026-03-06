@@ -22,3 +22,6 @@ app.include_router(infer.router, prefix="/api/v1/infer", tags=["infer"])
 @app.get("/")
 async def root():
     return {"message": "DigiCloset backend - upgrade pack placeholder"}
+from app.api.router import api_router
+
+app.include_router(api_router)
