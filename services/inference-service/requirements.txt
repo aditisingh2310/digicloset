@@ -1,5 +1,9 @@
 # Inference Service Requirements
--r ../../packages/shared/requirements.txt
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+httpx==0.24.1
+pydantic==2.5.3
+python-dotenv==1.0.0
 
 # Optional for Replicate API integration
 replicate>=0.19.0
