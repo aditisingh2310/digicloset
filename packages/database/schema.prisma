@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AiResult {
+  id         String   @id @default(cuid())
+  shop       String
+  productId  String
+  requestId  String?  @unique
+  category   String
+  tags       Json
+  confidence Float
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([shop], map: "idx_ai_result_shop")
+  @@index([productId], map: "idx_ai_result_product_id")
+  @@index([createdAt], map: "idx_ai_result_created_at")
+  @@index([shop, productId, createdAt], map: "idx_ai_result_shop_product_created_at")
+}
+model Shop {
+  id                 Int      @id @default(autoincrement())
+  shopDomain         String   @unique
+  accessToken        String
+  scope              String?
+  subscriptionStatus String   @default("inactive")
+  installedAt        DateTime @default(now())
+  
+  // Relationships
+  credits            ShopCredits?
+  tryonGenerations   TryOnGeneration[]
+  
+  @@index([shopDomain])
+  @@index([subscriptionStatus])
+}
+
+// Credit/usage billing system
+model ShopCredits {
+  id              String   @id @default(cuid())
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId          Int      @unique
+  monthlyLimit    Int      @default(100)    // Credits per month
+  creditsUsed     Int      @default(0)      // Credits used this month
+  creditsRemaining Int
+  resetDate       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([shopId])
+  @@index([resetDate])
+}
+
+// Virtual try-on generation records
+model TryOnGeneration {
+  id              String   @id @default(cuid())
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId          Int
+  productId       String
+  userImageUrl    String   // URL to user photo
+  garmentImageUrl String   // URL to garment photo
+  generatedImageUrl String? // URL to generated try-on image
+  replicateId     String?  // Prediction ID from Replicate API
+  status          String   @default("pending")  // pending, processing, completed, failed
+  creditsUsed     Int      @default(1)
+  processingTime  Float?   // Time in seconds
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  
+  @@index([shopId])
+  @@index([productId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([shopId, createdAt])
+  @@map("TryOnGenerations")
+}

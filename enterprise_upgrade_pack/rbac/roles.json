@@ -1,5 +1,0 @@
-{
-  "admin": ["*"],
-  "user": ["read", "write"],
-  "viewer": ["read"]
-}

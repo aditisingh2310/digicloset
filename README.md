@@ -1,101 +1,301 @@
+# DigiCloset: Shopify AI SaaS Platform
 
-# DigiCloset: Shopify "Complete the Look" Outfit Bundles
+Production-grade Shopify embedded application for AI-powered virtual try-on and outfit recommendations. Built as a clean, scalable monorepo with independent microservices.
 
-DigiCloset is a Shopify custom/private app for merchants. It uses AI to generate “Complete the Look” outfit bundles from your product catalog, helping you increase average order value and deliver personalized shopping experiences.
+## Overview
 
-## Shopify Production System
+DigiCloset helps Shopify merchants increase AOV through:
+- **AI-Powered Recommendations** - CLIP-based semantic product matching
+- **Virtual Try-On** - Image-to-image inference for outfit visualization
+- **Smart Bundling** - Automated outfit generation from product catalog
+- **Merchant Dashboard** - Analytics, configuration, and bundle management
 
-This repository contains a production Shopify embedded app. Active, production-ready Shopify logic lives in the following directories:
+## Project Structure
 
-- `shopify-app-core/` — App Bridge + OAuth, webhook receivers, and storefront widget integration.
-- `app/` — Python FastAPI backend (API surface, AI inference services, and merchant-facing endpoints).
-- `shopify-billing/` and `backend/` — Billing scaffolding and billing-related service code.
+This is a **production-ready monorepo** with the following architecture:
 
-Other top-level folders (for example `archive/`, `digicloset-upgrade-pack-complete/`, `digicloset-upgrade-pack/`, `frontend_clear/`, and various `deprecated_archive/` folders) contain experimental, archival, or scaffold code and are not required for a standard production install. Treat those directories as reference or in-progress work.
+```
+/apps              → Shopify embedded application
+  /shopify-app     → Backend API + OAuth + billing + widget
 
+/services          → Microservices
+  /ai-service      → Recommendation engine (CLIP embeddings, vector DB)
+  /inference-service → Virtual try-on via Replicate API
+  /queue-worker    → Background job processing
 
-## What It Does
-- Analyzes your Shopify product catalog
-- Suggests AI-powered outfit bundles (tops, bottoms, accessories, etc.)
-- Designed for Shopify merchants and store staff
-- Simple, focused, and production-ready for merchant use
+/packages          → Shared libraries
+  /database        → Prisma ORM schema
+  /shared          → Common config, types, utilities
+  /storage         → S3/local storage adapters
 
-## API Contract
-- Canonical application API routes use `/api/v1/...`.
-- Primary analyze endpoint: `/api/v1/analyze`.
-- Legacy endpoint `/api/analyze` is compatibility-only and will be removed in a future cleanup.
+/frontend          → Frontend applications
+  /admin-dashboard → Merchant dashboard
+  /shopify-widget  → Storefront widget UI
 
-## How to Use
-1. **Install the app** in your Shopify store (private/custom app setup)
-2. **Sync your product catalog** (automatic or manual trigger)
-3. **View and edit suggested outfit bundles** in the merchant dashboard
-4. **Publish bundles** to your storefront or use in marketing
+/infra             → Infrastructure & deployment
+  /docker          → Service Dockerfiles
+  /k8s             → Kubernetes manifests
+  /ci-cd           → CI/CD pipelines
+```
 
-## Local Development
-1. Clone this repository:
+**For detailed architecture documentation**, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+## Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Python 3.11+
+- Node.js 18+
+
+### Local Development
+
+1. **Clone and setup:**
    ```bash
    git clone <repo-url>
    cd digicloset
+   cp .env.example .env
    ```
 
-2. Install dependencies and start services:
-   The project consists of a frontend (Shopify app), a backend (FastAPI), and a model service (AI stub).
-   
-   **Using Docker Compose:**
+2. **Start all services:**
    ```bash
-   docker-compose -f digicloset-upgrade-pack/docker-compose.dev.yml up --build
-   ```
-   This command starts the Postgres database, MinIO object storage, Backend service (port 8000), and Model service (port 8001).
-
-   **Verifying Builds Locally:**
-   A PowerShell script is available to verify that all Docker images build correctly:
-   ```powershell
-   ./local_verification.ps1
+   docker-compose -f docker-compose.dev.yml up
    ```
 
-3. Access the services:
-   - **Merchant Dashboard**: http://localhost:3000 (requires frontend dev server)
-   - **Backend API**: http://localhost:8000/docs
-   - **Model Service**: http://localhost:8001
+   Services available at:
+   - **Shopify App**: http://localhost:8000
+   - **AI Service**: http://localhost:8001
+   - **Inference Service**: http://localhost:8002
+   - **PostgreSQL**: localhost:5432
+   - **Redis**: localhost:6379
 
-## Key Folders
-- **digicloset-upgrade-pack/**: Contains the main backend `app/`, `model-service/`, and infrastructure configurations for the standard deployment.
-- **digicloset-upgrade-pack-complete/**: Contains the complete version of the upgrade pack with additional features or configurations.
-- **ai-service-layer/**: Logic for the AI-powered outfit bundle generation.
-- **config/**: Configuration files for the application and integrations.
-- **legacy/upgrade packs** (`upgrade-pack*`, `enterprise_upgrade_pack*`, `ultimate-enterprise-pack`, `security_hardening_pack_v1`): archive/reference content and non-primary route sets.
+3. **Run database migrations:**
+   ```bash
+   cd packages/database
+   npx prisma migrate deploy
+   ```
 
-## For Developers
-- **Focus**: Keep all features focused on the Shopify merchant experience.
-- **Restrictions**: Do not add enterprise, hackathon, or experimental scaffolding without approval.
-- **Cleanup**: Refer to comments in deprecated folders regarding safe deletion.
+### Running Individual Services
 
-## Support
-Open an issue or contact the maintainer, **Aditi Singh** ([@aditisingh2310](https://github.com/aditisingh2310)), for assistance with Shopify integration or merchant onboarding.
-
-## Project Governance & Experimentation
-We follow a strict governance framework for Virtual Try-On experimentation to ensure reproducibility and cost efficiency.
-
-### Architecture Overview
-The system uses a **Provider Abstraction** layer to switch between:
-- **Local Inference**: `Stable Diffusion 1.5` + ControlNet (Baseline, Free).
-- **Cloud Inference**: `SD 3.5 Large Turbo` via Novita AI (Comparison, Paid).
-
-### Environment Variables
-Set the following in your `.env`:
+**Shopify App:**
 ```bash
-INFERENCE_PROVIDER=local  # or 'novita'
-NOVITA_API_KEY=your_key_here
+cd apps/shopify-app/backend
+uvicorn main:app --port 8000 --reload
 ```
 
-### Experiment Protocol
-1. **Define Strategy**: Check `docs/model_registry.yaml` for current baselines.
-2. **Run Experiment**: Use the evaluation harness to generate images and compute metrics (SSIM, Keypoint Deviation).
-3. **Log Results**: All runs must be logged in `docs/experiments/` with quantitative results.
-4. **Cost**: Check `cost_strategy_summary` before running large batches on paid providers.
+**AI Service:**
+```bash
+cd services/ai-service
+uvicorn main:app --port 8001 --reload
+```
 
-### Cost Strategy Summary
-- **Limit**: Max 20 experiment runs / 30 demo runs per cycle on paid providers.
-- **Logging**: All paid calls log timestamp, model, and credit estimate.
-- **Fallback**: System automatically falls back to `local` provider on API errors.
+**Queue Worker:**
+```bash
+cd services/queue-worker
+python worker.py
+```
 
+## API Endpoints
+
+### Shopify App (http://localhost:8000)
+
+**Product Analysis:**
+- `POST /api/v1/analyze` - Analyze product and generate recommendations
+- `GET /api/v1/products` - List products with recommendations
+- `POST /api/v1/bundles` - Create outfit bundle
+
+**Merchant Dashboard:**
+- `GET /api/v1/merchant/dashboard` - Analytics and metrics
+- `GET /api/v1/merchant/settings` - Configuration
+- `POST /api/v1/merchant/settings` - Update settings
+
+**Webhooks:**
+- `POST /api/v1/webhooks/shopify` - Shopify webhook receiver
+
+### AI Service (http://localhost:8001)
+
+- `POST /api/v1/embeddings` - Generate product embeddings
+- `POST /api/v1/search` - Semantic product search
+- `POST /api/v1/recommendations` - Get outfit recommendations
+
+### Inference Service (http://localhost:8002)
+
+- `POST /api/v1/tryon` - Generate virtual try-on image
+- `GET /api/v1/async-job/{id}` - Check async job status
+
+## Configuration
+
+All services use centralized configuration from `.env`:
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/digicloset
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
+
+# Shopify
+SHOPIFY_API_KEY=your-key
+SHOPIFY_API_SECRET=your-secret
+
+# AI Settings
+CLIP_MODEL_NAME=openai/clip-vit-base-patch32
+
+# External APIs
+REPLICATE_API_TOKEN=your-token
+```
+
+See `.env.example` for complete configuration options.
+
+## Architecture
+
+### Service Communication
+
+```
+Shopify App      AI Service     Inference Service    Queue Worker
+    ↓               ↓                  ↓                 ↓
+ [FastAPI]    [FastAPI]          [FastAPI]          [RQ]
+    ↓               ↓                  ↓                 ↓
+±─────────────────────────────────────────────────────────┤
+│                 PostgreSQL Database                      │
+│                      Redis Queue                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Data Flow: Product Recommendation
+
+1. Merchant uploads product image
+2. Shopify App validates and queues job
+3. AI Service generates CLIP embeddings
+4. Vector DB searches for similar products
+5. Results cached and returned to merchant
+6. Frontend displays recommendations
+
+### Data Flow: Virtual Try-On
+
+1. Customer selects product in storefront
+2. Widget captures image via device camera
+3. Inference Service processes via Replicate
+4. Result cached in S3/local storage
+5. Widget displays try-on result
+
+## Development
+
+### Project Organization
+
+- **Monorepo:** Single repository, multiple independent services
+- **Shared Code:** `/packages/shared` for common utilities
+- **Configuration:** Centralized in `/packages/shared/config.py`
+- **Logging:** Structured JSON logging via `/packages/shared/logging.py`
+- **Database:** Prisma ORM with `/packages/database/schema.prisma`
+
+### Adding New Code
+
+**Service-specific code:**
+Add to service directory (e.g., `apps/shopify-app/backend/services/`)
+
+**Shared code:**
+Add to `/packages/shared/`
+
+**Imports (example):**
+```python
+from packages.shared.config import config
+from packages.shared.logging import get_logger
+from packages.shared.types import APIResponse
+from packages.shared.exceptions import NotFoundError
+```
+
+### Testing
+
+```bash
+# All tests
+pytest
+
+# Service-specific
+pytest apps/shopify-app/backend/tests
+
+# With coverage
+pytest --cov=apps --cov=services --cov=packages
+```
+
+### Building Docker Images
+
+```bash
+# Shopify App
+docker build -f infra/docker/Dockerfile.shopify-app -t digicloset-shopify-app .
+
+# AI Service
+docker build -f infra/docker/Dockerfile.ai-service -t digicloset-ai-service .
+
+# Inference Service
+docker build -f infra/docker/Dockerfile.inference-service -t digicloset-inference-service .
+
+# Queue Worker
+docker build -f infra/docker/Dockerfile.queue-worker -t digicloset-queue-worker .
+```
+
+## Deployment
+
+### Production Checklist
+
+- [ ] Update `.env` with production secrets
+- [ ] Configure PostgreSQL (managed DB recommended)
+- [ ] Configure Redis (managed cache recommended)
+- [ ] Set up S3 for image storage
+- [ ] Configure Shopify API credentials
+- [ ] Update `ALLOWED_ORIGINS` for CORS
+- [ ] Run database migrations
+- [ ] Build and push Docker images
+- [ ] Deploy to Kubernetes or container service
+
+### Kubernetes Deployment
+
+Manifests in `/infra/k8s/`:
+
+```bash
+kubectl apply -f infra/k8s/postgres-statefulset.yaml
+kubectl apply -f infra/k8s/redis-deployment.yaml
+kubectl apply -f infra/k8s/shopify-app-deployment.yaml
+kubectl apply -f infra/k8s/ai-service-deployment.yaml
+kubectl apply -f infra/k8s/inference-service-deployment.yaml
+kubectl apply -f infra/k8s/queue-worker-deployment.yaml
+kubectl apply -f infra/k8s/ingress.yaml
+```
+
+### Environment-Specific Configuration
+
+Set `ENVIRONMENT` variable:
+- `development` - Debug mode, verbose logging
+- `staging` - Production-like, detailed errors
+- `production` - Performance mode, minimal logging
+
+## Monitoring
+
+All services expose:
+- **Health checks:** `GET /health`
+- **Metrics:** Prometheus format at `GET /metrics`
+- **Structured logs:** JSON format with request IDs
+- **Error tracking:** Full exception context in logs
+
+## Documentation
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Detailed architecture documentation
+- [REFACTORING_GUIDE.md](./REFACTORING_GUIDE.md) - Monorepo refactoring details
+- [docs/API.md](./docs/API.md) - API documentation
+
+## Contributing
+
+1. Follow monorepo conventions
+2. Add shared code to `/packages/shared`
+3. Write tests for new features
+4. Document API changes in `/docs/API.md`
+5. Use type hints throughout
+
+## Support
+
+For architecture questions, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+For refactoring details, see [REFACTORING_GUIDE.md](./REFACTORING_GUIDE.md).
+
+## License
+
+See [LICENSE](./LICENSE)

@@ -14,22 +14,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: model-service
-            context: ./digicloset-upgrade-pack/model-service
-            dockerfile: ./digicloset-upgrade-pack/model-service/Dockerfile
-          - name: model-service-complete
-            context: ./digicloset-upgrade-pack-complete/model-service
-            dockerfile: ./digicloset-upgrade-pack-complete/model-service/Dockerfile
-          - name: backend
-            context: ./digicloset-upgrade-pack/backend
-            dockerfile: ./digicloset-upgrade-pack/backend/Dockerfile
-          - name: backend-complete
-            context: ./digicloset-upgrade-pack-complete/backend
-            dockerfile: ./digicloset-upgrade-pack-complete/backend/Dockerfile
+          - name: shopify-backend
+            context: ./apps/shopify-app/backend
+            dockerfile: ./apps/shopify-app/backend/Dockerfile
+          - name: inference-service
+            context: ./services/inference-service
+            dockerfile: ./services/inference-service/Dockerfile
+          - name: ai-service
+            context: ./services/ai-service
+            dockerfile: ./services/ai-service/Dockerfile
+          - name: queue-worker
+            context: ./services/queue-worker
+            dockerfile: ./services/queue-worker/Dockerfile
 
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker image (${{ matrix.name }})
+        if: hashFiles(format('{0}', matrix.dockerfile)) != ''
         run: |
           docker build \
             "${{ matrix.context }}" \
@@ -37,7 +38,7 @@ jobs:
             --tag "${{ matrix.name }}:${{ github.sha }}"
 
       - name: Run E2E Tests (Backend Only)
-        if: matrix.name == 'backend'
+        if: matrix.name == 'shopify-backend' && hashFiles(format('{0}', matrix.dockerfile)) != ''
         run: |
           chmod +x run_tests.sh
           ./run_tests.sh "${{ matrix.name }}:${{ github.sha }}"

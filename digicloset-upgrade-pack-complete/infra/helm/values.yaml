@@ -1,5 +1,0 @@
-replicaCount: 1
-image:
-  repository: your-registry/digicloset
-  pullPolicy: IfNotPresent
-  tag: latest

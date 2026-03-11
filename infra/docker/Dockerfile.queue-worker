@@ -1,0 +1,25 @@
+# Queue Worker
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy shared packages and worker
+COPY packages/shared /app/packages/shared
+COPY services/queue-worker /app/services/queue-worker
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r packages/shared/requirements.txt && \
+    pip install --no-cache-dir rq>=1.13.0 click>=8.1.0
+
+ENV PYTHONPATH=/app:$PYTHONPATH
+
+CMD ["python", "services/queue-worker/worker.py"]

@@ -1,1 +1,0 @@
-E2E tests placeholder using Playwright or Cypress.
