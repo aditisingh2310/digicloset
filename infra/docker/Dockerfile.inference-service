@@ -1,0 +1,29 @@
+# Inference Service
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy shared packages and inference service
+COPY packages/shared /app/packages/shared
+COPY services/inference-service /app/services/inference-service
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r packages/shared/requirements.txt && \
+    pip install --no-cache-dir -r services/inference-service/requirements.txt 2>/dev/null || true
+
+ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PORT=8002
+
+EXPOSE 8002
+
+CMD ["uvicorn", "services.inference-service.main:app", "--host", "0.0.0.0", "--port", "8002"]

@@ -1,4 +1,0 @@
-# Helm deploy template (example)
-releaseName: myapp
-chart: ./deploy/helm
-namespace: production

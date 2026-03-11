@@ -1,3 +1,0 @@
-# Optional: install following official instructions for performance and CUDA support.
-torch
-torchvision

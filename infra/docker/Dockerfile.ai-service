@@ -1,0 +1,30 @@
+# AI/Recommendation Service
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy shared packages and AI service
+COPY packages/shared /app/packages/shared
+COPY services/ai-service /app/services/ai-service
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r packages/shared/requirements.txt && \
+    pip install --no-cache-dir -r services/ai-service/requirements.txt
+
+ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PORT=8001
+
+EXPOSE 8001
+
+CMD ["uvicorn", "services.ai-service.main:app", "--host", "0.0.0.0", "--port", "8001"]

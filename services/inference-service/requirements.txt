@@ -1,0 +1,8 @@
+# Inference Service Requirements
+-r ../../packages/shared/requirements.txt
+
+# Optional for Replicate API integration
+replicate>=0.19.0
+
+# Image processing
+pillow>=10.0.0

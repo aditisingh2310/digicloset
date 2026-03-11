@@ -1,0 +1,38 @@
+groups:
+- name: digicloset_alerts
+  rules:
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.03
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate detected (>3%)"
+      description: "HTTP 5xx responses exceeded threshold."
+
+  - alert: LatencySpike
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High latency detected (p95 > 1s)"
+      description: "API response latency is above acceptable SLA."
+
+  - alert: UptimeSLA
+    expr: (1 - (avg_over_time(probe_success[24h]))) > 0.005
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Uptime SLA breach (<99.5%)"
+      description: "Service uptime fell below 99.5% threshold."
+
+  - alert: PodCrashLoop
+    expr: increase(kube_pod_container_status_restarts_total[10m]) > 3
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Pod CrashLoop detected"
+      description: "A container restarted more than 3 times in 10 minutes."

@@ -1,0 +1,12 @@
+replicaCount: 1
+
+image:
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  nodePort: 3000
+  pythonPort: 8000
+
+resources: {}

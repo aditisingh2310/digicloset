@@ -1,0 +1,196 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: digicloset-postgres
+    environment:
+      POSTGRES_USER: digicloset
+      POSTGRES_PASSWORD: digicloset_dev
+      POSTGRES_DB: digicloset
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U digicloset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - digicloset-network
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: digicloset-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - digicloset-network
+
+  # MinIO for local S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    container_name: digicloset-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - digicloset-network
+
+  # Shopify App Backend API
+  shopify-app:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.shopify-app
+    container_name: digicloset-shopify-app
+    environment:
+      DATABASE_URL: postgresql://digicloset:digicloset_dev@postgres:5432/digicloset
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+      DEBUG: "true"
+      API_PORT: 8000
+      SHOPIFY_API_KEY: ${SHOPIFY_API_KEY:-test-key}
+      SHOPIFY_API_SECRET: ${SHOPIFY_API_SECRET:-test-secret}
+      SECRET_KEY: dev-secret-key-change-in-production
+      STORAGE_TYPE: local
+      LOCAL_STORAGE_PATH: /tmp/digicloset-storage
+      ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:8000,http://localhost:3001"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - digicloset-network
+    command: >
+      sh -c "
+      pip install -r packages/shared/requirements.txt &&
+      pip install -r apps/shopify-app/backend/requirements.txt &&
+      uvicorn apps.shopify-app.backend.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  # AI/Recommendation Service
+  ai-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.ai-service
+    container_name: digicloset-ai-service
+    environment:
+      DATABASE_URL: postgresql://digicloset:digicloset_dev@postgres:5432/digicloset
+      REDIS_URL: redis://redis:6379/1
+      ENVIRONMENT: development
+      DEBUG: "true"
+      API_PORT: 8001
+      CLIP_MODEL_NAME: openai/clip-vit-base-patch32
+      LOG_LEVEL: INFO
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    networks:
+      - digicloset-network
+    command: >
+      sh -c "
+      pip install -r packages/shared/requirements.txt &&
+      pip install -r services/ai-service/requirements.txt &&
+      uvicorn services.ai-service.main:app --host 0.0.0.0 --port 8001 --reload
+      "
+
+  # Inference Service
+  inference-service:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.inference-service
+    container_name: digicloset-inference-service
+    environment:
+      DATABASE_URL: postgresql://digicloset:digicloset_dev@postgres:5432/digicloset
+      REDIS_URL: redis://redis:6379/2
+      ENVIRONMENT: development
+      DEBUG: "true"
+      API_PORT: 8002
+      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
+      LOG_LEVEL: INFO
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    networks:
+      - digicloset-network
+    command: >
+      sh -c "
+      pip install -r packages/shared/requirements.txt &&
+      pip install -r services/inference-service/requirements.txt &&
+      uvicorn services.inference-service.main:app --host 0.0.0.0 --port 8002 --reload
+      "
+
+  # Queue Worker
+  queue-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.queue-worker
+    container_name: digicloset-queue-worker
+    environment:
+      DATABASE_URL: postgresql://digicloset:digicloset_dev@postgres:5432/digicloset
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+      DEBUG: "true"
+      RQ_QUEUES: ai,default
+      LOG_LEVEL: INFO
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - .:/app
+    networks:
+      - digicloset-network
+    command: >
+      sh -c "
+      pip install -r packages/shared/requirements.txt &&
+      python services/queue-worker/worker.py
+      "
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  digicloset-network:
+    driver: bridge

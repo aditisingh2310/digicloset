@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-pillow
-numpy
-scikit-learn
-python-multipart
-requests
-prometheus-client
-

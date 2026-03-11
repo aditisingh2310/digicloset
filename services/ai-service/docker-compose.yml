@@ -1,0 +1,104 @@
+# ========================================
+# Shopify Fashion Recommendation Engine
+# Docker Compose Configuration
+# ========================================
+
+version: '3.9'
+
+services:
+  # Main recommendation service
+  recommendation-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopify-recommendation-engine
+    ports:
+      - "8000:8000"
+    environment:
+      # Model configuration
+      CLIP_MODEL_NAME: openai/clip-vit-base-patch32
+      EMBEDDING_DIM: 512
+      
+      # Service configuration
+      SERVICE_HOST: 0.0.0.0
+      SERVICE_PORT: 8000
+      NUM_WORKERS: 4
+      LOG_LEVEL: info
+      RELOAD: "false"
+      
+      # Paths (mounted volumes)
+      INDEX_PATH: /data/recommendation_index/faiss.index
+      METADATA_PATH: /data/recommendation_index/metadata.json
+      
+      # Recommendation parameters
+      COLOR_WEIGHT: 0.2
+      SIMILARITY_THRESHOLD: 0.3
+      
+      # CORS
+      CORS_ORIGINS: "*"
+    
+    volumes:
+      # Persist index data
+      - recommendation-data:/data
+      # Mount source code for development
+      - .:/app
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    
+    # Restart policy
+    restart: unless-stopped
+
+# Persistent volume for index data
+volumes:
+  recommendation-data:
+    driver: local
+
+# Network configuration
+networks:
+  default:
+    name: recommendation-network
+    driver: bridge
+
+# ========================================
+# Usage:
+# 
+# 1. Start services:
+#    docker-compose up -d
+# 
+# 2. View logs:
+#    docker-compose logs -f recommendation-engine
+# 
+# 3. Stop services:
+#    docker-compose down
+# 
+# 4. Access API:
+#    http://localhost:8000
+#    http://localhost:8000/docs (Swagger UI)
+# 
+# 5. Run example:
+#    python examples.py
+# 
+# ========================================

@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: supabase-objectstore-backup
+  namespace: default
+spec:
+  schedule: "0 3 * * *"  # daily at 3am
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: storage-backup
+            image: alpine:3
+            env:
+            - name: SUPABASE_URL
+              value: "https://your-project-id.supabase.co"
+            - name: SUPABASE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: supabase-api-key
+                  key: key
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting Supabase storage mirror backup..."
+              # This would typically use supabase CLI or rclone in production
+              echo "Simulated backup complete."
+          restartPolicy: OnFailure

@@ -1,4 +1,0 @@
-cache-dir: /tmp/trivy-cache
-skip-files:
-  - '**/vendor/**'
-severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
