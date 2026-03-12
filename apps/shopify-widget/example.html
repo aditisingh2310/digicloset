@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Page - Shopify Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .product-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      padding: 40px;
+    }
+
+    .product-images {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .product-image {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #e5e5e5;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #999;
+    }
+
+    .product-info h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .product-price {
+      font-size: 24px;
+      color: #28a745;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .product-description {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: #007bff;
+      color: white;
+      flex: 1;
+    }
+
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+
+    .btn-secondary {
+      background: #e5e5e5;
+      color: #333;
+      padding: 12px 20px;
+    }
+
+    .btn-secondary:hover {
+      background: #d5d5d5;
+    }
+
+    /* Try-On Widget Section */
+    #tryon-widget-section {
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 1px solid #e5e5e5;
+    }
+
+    #tryon-widget-section h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    #tryon-widget-section p {
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    #tryon-widget-container {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .product-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+        padding: 20px;
+      }
+
+      .product-info h1 {
+        font-size: 24px;
+      }
+
+      .product-actions {
+        flex-direction: column;
+      }
+
+      .btn-primary {
+        width: 100%;
+      }
+
+      #tryon-widget-section {
+        margin-top: 30px;
+        padding-top: 30px;
+      }
+    }
+
+    /* Loading indicator */
+    .loading-placeholder {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="product-container">
+    <!-- Product Images and Info -->
+    <div class="product-grid">
+      <div class="product-images">
+        <div class="product-image">Product Image 1</div>
+        <div class="product-image">Product Image 2</div>
+      </div>
+
+      <div class="product-info">
+        <h1>Premium Cotton T-Shirt</h1>
+        <div class="product-price">$49.99</div>
+
+        <div class="product-description">
+          <p>
+            Experience comfort and style with our premium cotton t-shirt. Made from 100% organic
+            cotton, this versatile piece is perfect for everyday wear. Features:
+          </p>
+          <ul style="margin: 20px 0; line-height: 2">
+            <li>✓ 100% organic cotton</li>
+            <li>✓ Available in 5 colors</li>
+            <li>✓ XS to XL sizes</li>
+            <li>✓ Machine washable</li>
+          </ul>
+        </div>
+
+        <div class="product-actions">
+          <button class="btn btn-primary">Add to Cart</button>
+          <button class="btn btn-secondary">Save</button>
+        </div>
+
+        <!-- Try-On Widget Section -->
+        <div id="tryon-widget-section">
+          <h2>Virtual Try-On</h2>
+          <p>
+            Upload your photo to see how this shirt looks on you before you buy. Our AI-powered
+            try-on feature shows you an accurate preview using your own image.
+          </p>
+
+          <!-- Widget Container -->
+          <div id="tryon-widget-container">
+            <div class="loading-placeholder">Loading try-on widget...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- React Libraries -->
+  <!-- In production, use minified versions and bundle them with your app -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Try-On Widget Script -->
+  <!-- 
+    Options:
+    - data-container: ID of container element (default: tryon-widget-container)
+    - data-product-id: Shopify product ID
+    - data-debug: Enable debug logging (true/false)
+  -->
+  <script
+    src="./dist/shopify-tryon-widget.js"
+    data-container="tryon-widget-container"
+    data-product-id="123456789"
+    data-debug="false">
+  </script>
+
+  <!-- Analytics Integration (Optional) -->
+  <script>
+    // Listen for widget events
+    window.addEventListener('tryon:generated', (e) => {
+      console.log('Try-on completed:', e.detail);
+      // Send to Google Analytics
+      if (window.gtag) {
+        gtag('event', 'tryon_generated', {
+          'tryon_id': e.detail.id,
+          'product_id': window.productId,
+          'duration': e.detail.processingTime
+        });
+      }
+    });
+
+    window.addEventListener('tryon:error', (e) => {
+      console.error('Try-on error:', e.detail);
+      if (window.gtag) {
+        gtag('event', 'tryon_error', {
+          'error_message': e.detail.error
+        });
+      }
+    });
+
+    window.addEventListener('tryon:addToCart', (e) => {
+      console.log('Customer wants to add to cart:', e.detail);
+      // Trigger add-to-cart event on Shopify
+      document.querySelector('.btn-primary').click();
+    });
+  </script>
+
+  <!-- Widget API Example (Optional) -->
+  <script>
+    // Wait for widget to load
+    window.addEventListener('load', () => {
+      console.log('Widget API available at:', window.ShopifyTryOnWidget);
+
+      // You can now call:
+      // window.ShopifyTryOnWidget.setVisible(true);
+      // window.ShopifyTryOnWidget.enableDebug();
+      // window.ShopifyTryOnWidget.setConfig({ productId: 'new-id' });
+    });
+  </script>
+</body>
+</html>
