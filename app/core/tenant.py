@@ -35,7 +35,7 @@ async def tenant_middleware(request: Request, call_next):
     """
     # Allow health, public docs and webhook endpoints to bypass tenant enforcement
     public_paths = ("/health", "/openapi.json", "/docs", "/redoc")
-    if request.url.path in public_paths or request.url.path.startswith("/api/webhooks"):
+    if request.url.path in public_paths or request.url.path.startswith("/api/webhooks") or request.url.path.startswith("/api/auth"):
         return await call_next(request)
 
     shop = request.headers.get("x-shopify-shop-domain")
