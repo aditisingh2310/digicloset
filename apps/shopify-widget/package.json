@@ -1,0 +1,40 @@
+{
+  "name": "@digicloset/shopify-widget",
+  "version": "1.0.0",
+  "description": "Virtual try-on widget for Shopify storefronts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "eslint": "^8.48.0",
+    "typescript": "^5.2.0",
+    "vite": "^4.4.0",
+    "vitest": "^0.34.0"
+  },
+  "keywords": [
+    "shopify",
+    "virtual-tryon",
+    "widget",
+    "clothing",
+    "fashion"
+  ],
+  "author": "DigiCloset",
+  "license": "MIT"
+}

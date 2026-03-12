@@ -1,0 +1,86 @@
+/* Main Try-On Widget Styles */
+
+.tryon-widget {
+  max-width: 500px;
+  margin: 20px auto;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.tryon-widget h2 {
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  color: #333;
+  text-align: center;
+}
+
+.tryon-widget form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tryon-widget button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tryon-widget button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tryon-widget button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error State */
+.error-message {
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  color: #c33;
+}
+
+.error-message p {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+}
+
+.error-message button {
+  background: #c33;
+  color: white;
+  padding: 10px 20px;
+}
+
+.error-message button:hover {
+  background: #a22;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .tryon-widget {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .tryon-widget h2 {
+    font-size: 20px;
+  }
+
+  .tryon-widget button {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+}
