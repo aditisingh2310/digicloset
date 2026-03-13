@@ -1,6 +1,49 @@
-node_modules/
-.env
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---- Python ----
 __pycache__/
-*.pyc
-.ipynb_checkpoints/
+*.py[cod]
+*.pyd
+*.pyo
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+.venv/
+.venv_test/
+venv/
+.env
+.env.*
+
+# ---- Node / frontend ----
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# ---- Shopify app/dev tooling ----
+.shopify/
+.shopify-cli.yml
+.shopify.app.toml
+
+# ---- Docker ----
+*.pid
+*.log
+.docker/
+
+# ---- Local artifacts ----
+Pictures/
+*.sqlite3
 .agent/

@@ -502,3 +502,6 @@ async def track_order_completed(
         request_id=request_id,
     )
     return await revenue_engine.track_event(event)
+
+# Backwards-compatible singleton alias
+revenue_attribution = revenue_engine
