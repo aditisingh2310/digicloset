@@ -44,6 +44,7 @@ class ShopifyClient:
         backoff_base: float = 0.5,
         rate_warn_threshold: float = 0.8,
         metrics_hook: Optional[callable] = None,
+        api_version: str = "2024-01",
     ) -> None:
         self.shop_domain = shop_domain
         self.access_token = access_token
@@ -52,6 +53,7 @@ class ShopifyClient:
         self.backoff_base = float(backoff_base)
         self.rate_warn_threshold = float(rate_warn_threshold)
         self.metrics_hook = metrics_hook
+        self.api_version = api_version
 
         # session defaults
         self.session.headers.update({
@@ -104,6 +106,7 @@ class ShopifyClient:
         json: Optional[Any] = None,
         idempotency_key: Optional[str] = None,
         timeout: Optional[float] = 10.0,
+        request_id: Optional[str] = None,
     ) -> requests.Response:
         """Perform an HTTP request against Shopify Admin API with retry/backoff.
 
@@ -114,6 +117,8 @@ class ShopifyClient:
         headers = {}
         if idempotency_key:
             headers["Idempotency-Key"] = idempotency_key
+        if request_id:
+            headers["X-Request-ID"] = request_id
 
         attempt = 1
         last_exception: Optional[Exception] = None
@@ -159,9 +164,11 @@ class ShopifyClient:
 
             except requests.RequestException as exc:
                 last_exception = exc
-                # For network-level errors, retry
+                allow_retry = method.upper() in ("GET", "HEAD", "OPTIONS") or idempotency_key is not None
                 logger.warning("Network error during Shopify request: %s; attempt=%d", exc, attempt)
-                self._emit_metric("shopify_network_error", {"attempt": attempt})
+                self._emit_metric("shopify_network_error", {"attempt": attempt, "retryable": allow_retry})
+                if not allow_retry:
+                    raise
                 backoff = self._compute_backoff(attempt)
                 time.sleep(backoff)
                 attempt += 1

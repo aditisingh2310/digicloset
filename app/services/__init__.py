@@ -1,22 +1,17 @@
-"""
-Services package for DigiCloset growth and monetization features.
+"""Service exports for the DigiCloset backend."""
 
-This package contains all the business logic services for:
-- Revenue attribution and tracking
-- AI usage metering and limits
-- Observability and event logging
-- Intelligent upgrade prompts
-- Self-healing and reliability guards
-"""
+from .revenue_attribution import RevenueAttributionEngine, revenue_engine
+from .ai_metering import AIMeteringService, ai_metering
+from .observability import ObservabilityService, observability
+from .upgrade_prompts import UpgradePromptsService, upgrade_prompts
+from .reliability_guard import ReliabilityGuard, reliability_guard
 
-from .revenue_attribution import revenue_attribution, RevenueAttributionEngine
-from .ai_metering import ai_metering, AIMeteringService
-from .observability import observability, ObservabilityService
-from .upgrade_prompts import upgrade_prompts, UpgradePromptsService
-from .reliability_guard import reliability_guard, ReliabilityGuard
+# Backwards-compatible alias expected by older modules/tests
+revenue_attribution = revenue_engine
 
 __all__ = [
     "revenue_attribution",
+    "revenue_engine",
     "RevenueAttributionEngine",
     "ai_metering",
     "AIMeteringService",

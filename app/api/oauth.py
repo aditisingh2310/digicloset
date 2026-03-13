@@ -1,64 +1,67 @@
 from __future__ import annotations
 
 import json
+import re
 import secrets
 from typing import Optional
+from urllib.parse import urlencode
 
 import requests
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request
 from starlette.responses import RedirectResponse
 
 from app.core.config import settings
 from app.core.security import verify_oauth_hmac
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+SHOP_DOMAIN_RE = re.compile(r"^[a-z0-9][a-z0-9-]*\.myshopify\.com$")
 
 
-def _redis() -> Optional[object]:
-    # lazily import app state redis; caller must ensure running inside FastAPI app context
-    from fastapi import _get_current_app
+def _redis(request: Request) -> Optional[object]:
+    return getattr(request.app.state, "redis", None)
 
-    app = _get_current_app()
-    return getattr(app.state, "redis", None)
+
+def _validate_shop_domain(shop: str) -> str:
+    shop = (shop or "").strip().lower()
+    if not SHOP_DOMAIN_RE.match(shop):
+        raise HTTPException(status_code=400, detail="Invalid shop domain")
+    return shop
 
 
 @router.get("/install")
-async def shopify_install(shop: str):
+async def shopify_install(request: Request, shop: str):
+    shop = _validate_shop_domain(shop)
     state = secrets.token_urlsafe(16)
-    r = _redis()
-    if r:
-        # store state -> shop mapping short-lived (5 minutes)
-        r.setex(f"oauth_state:{state}", 300, shop)
+    redis_client = _redis(request)
+    if redis_client:
+        redis_client.setex(f"oauth_state:{state}", 300, shop)
 
+    app_base = request.headers.get("x-forwarded-proto", request.url.scheme) + "://" + request.headers.get("host", request.url.netloc)
     params = {
         "client_id": settings.shopify_api_key,
         "scope": "read_products,write_products",
-        "redirect_uri": f"/api/auth/callback",
+        "redirect_uri": f"{app_base}/api/auth/callback",
         "state": state,
     }
-    install_url = f"https://{shop}/admin/oauth/authorize?" + "&".join(f"{k}={v}" for k, v in params.items())
+    install_url = f"https://{shop}/admin/oauth/authorize?{urlencode(params)}"
     return {"install_url": install_url, "state": state}
 
 
 @router.get("/callback")
-async def shopify_callback(request: Request, response: Response, state: Optional[str] = None, session_id: Optional[str] = Cookie(None)):
-    # Verify HMAC and state parameter
+async def shopify_callback(request: Request):
     qs = dict(request.query_params)
     verify_oauth_hmac(qs)
 
-    shop = qs.get("shop")
+    shop = _validate_shop_domain(qs.get("shop", ""))
     code = qs.get("code")
     returned_state = qs.get("state")
-    if not shop or not code:
-        raise HTTPException(status_code=400, detail="Missing shop or code")
+    if not code or not returned_state:
+        raise HTTPException(status_code=400, detail="Missing code/state")
 
-    if returned_state != state:
-        # also check server-side stored state mapping
-        r = _redis()
-        if not r or not r.get(f"oauth_state:{returned_state}"):
-            raise HTTPException(status_code=400, detail="Invalid state")
+    redis_client = _redis(request)
+    if not redis_client or not redis_client.get(f"oauth_state:{returned_state}"):
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
-    # Exchange code for access token
     token_res = requests.post(
         f"https://{shop}/admin/oauth/access_token",
         json={
@@ -69,21 +72,15 @@ async def shopify_callback(request: Request, response: Response, state: Optional
         timeout=10,
     )
     token_res.raise_for_status()
-    body = token_res.json()
-    access_token = body.get("access_token")
+    access_token = token_res.json().get("access_token")
     if not access_token:
         raise HTTPException(status_code=400, detail="Failed to obtain access token")
 
-    # Store token server-side in Redis with a session id and set secure cookie
     sess = secrets.token_urlsafe(32)
-    r = _redis()
-    if r:
-        r.setex(f"session:{sess}", 3600 * 24 * 7, json.dumps({"shop": shop, "access_token": access_token}))
+    if redis_client:
+        redis_client.setex(f"session:{sess}", 3600 * 24 * 7, json.dumps({"shop": shop, "access_token": access_token}))
+        redis_client.delete(f"oauth_state:{returned_state}")
 
-    # set cookie with HttpOnly, Secure and SameSite=Lax to reduce CSRF
-    response = RedirectResponse(url="/" )
+    response = RedirectResponse(url="/")
     response.set_cookie("session_id", sess, httponly=True, secure=True, samesite="lax", max_age=3600 * 24 * 7)
-
-    # TODO: persist shop + token to DB via an application service
-
     return response

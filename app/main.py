@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from app.api.router import api_router
 from app.ai.services.ai_service import AIService
 from app.ai.services.ai_with_cb import AIServiceWithCircuitBreaker
@@ -7,15 +7,22 @@ from app.core.tenant import tenant_middleware
 from app.core.metrics_middleware import metrics_middleware
 from jobs.redis_conn import get_redis_connection
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from app.core.request_id import request_id_middleware
 from app.core.logging_conf import configure_logging
-from app.core.exceptions import global_exception_handler
+from app.core.exceptions import (
+    global_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+)
 from app.middleware.timeout import request_timeout_middleware
 from app.api.oauth import router as oauth_router
 from app.api.webhooks import router as webhooks_router
 from app.middleware.observability import latency_middleware
 from app.middleware.billing import billing_enforcement_middleware
+from app.middleware.rate_limiter import RateLimitMiddleware
 import os
+import logging
 
 
 # Configure structured logging early
@@ -57,6 +64,7 @@ if origins:
 app.middleware("http")(metrics_middleware)
 app.middleware("http")(request_timeout_middleware)
 app.middleware("http")(latency_middleware)
+app.add_middleware(RateLimitMiddleware)
 
 # Billing enforcement should run after tenant middleware (tenant_middleware attaches tenant)
 
@@ -111,6 +119,8 @@ app.middleware("http")(tenant_middleware)
 app.middleware("http")(billing_enforcement_middleware)
 
 # Register global exception handler
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
 
 
@@ -142,7 +152,17 @@ def health() -> dict:
     except Exception:
         details["redis"] = False
         ok = False
-    return {"status": "ok" if ok else "unhealthy", "details": details}
+    if ok:
+        return {"status": "ok"}
+    return {"status": "unhealthy", "details": details}
+
+
+@app.get("/health/ready")
+def readiness() -> dict:
+    """Readiness endpoint validating critical runtime configuration."""
+    required = ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET"]
+    missing = [name for name in required if not os.environ.get(name)]
+    return {"ready": len(missing) == 0, "missing": missing}
 
 
 @app.on_event("shutdown")

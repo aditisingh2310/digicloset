@@ -6,6 +6,7 @@ from typing import Optional
 
 from app.models.billing import SubscriptionRecord, UsageRecord
 from app.core.plans import PLANS
+from app.core.config import settings
 from app.services.shopify_client import ShopifyClient
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ class BillingService:
     def __init__(self, shop_domain: str, access_token: str, store: StorageInterface, shopify_client: Optional[ShopifyClient] = None):
         self.shop = shop_domain
         self.store = store
-        self.client = shopify_client or ShopifyClient(shop_domain, access_token)
+        self.client = shopify_client or ShopifyClient(shop_domain, access_token, api_version=settings.shopify_api_version)
 
     async def create_recurring_charge(self, plan_name: str = "starter") -> dict:
         """Create a recurring application charge via Shopify GraphQL and persist pending state.
@@ -83,8 +84,14 @@ class BillingService:
         }}
         """
 
-        resp = self.client.request("POST", f"/admin/api/{self.client.session.headers.get('X-Shopify-Access-Token')}/graphql.json", json={"query": mutation}, timeout=10)
-        # For safety, we won't parse exact fields here; real implementation would parse response
+        resp = self.client.request(
+            "POST",
+            f"/admin/api/{settings.shopify_api_version}/graphql.json",
+            json={"query": mutation},
+            timeout=10,
+            idempotency_key=f"billing-create:{self.shop}:{plan_name}",
+        )
+        resp.raise_for_status()
         record = SubscriptionRecord(shop_domain=self.shop, plan_name=plan_name, status="pending", trial_ends_at=(datetime.utcnow() + timedelta(days=trial_days) if trial_days else None))
         await self.store.save_subscription(record)
         return record.dict()
