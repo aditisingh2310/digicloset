@@ -176,19 +176,18 @@ class S3StorageAdapter(StorageAdapter):
                 Key=filename,
                 Body=image_data,
                 ContentType="image/jpeg",
-                ACL="public-read",
+                ACL="private",  # Changed to private for signed URLs
             )
 
-            # Generate public URL
-            if self.endpoint_url:
-                # MinIO or custom endpoint
-                url = f"{self.endpoint_url.rstrip('/')}/{self.bucket}/{filename}"
-            else:
-                # AWS S3
-                url = f"https://{self.bucket}.s3.{self.region}.amazonaws.com/{filename}"
+            # Generate signed URL with expiration
+            signed_url = self.s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.bucket, 'Key': filename},
+                ExpiresIn=3600  # 1 hour expiration
+            )
 
-            logger.info(f"Saved image to S3: {url}")
-            return url
+            logger.info(f"Saved image to S3 with signed URL: {filename}")
+            return signed_url
 
         except Exception as e:
             logger.error(f"Failed to save image to S3: {str(e)}")
@@ -216,6 +215,26 @@ class S3StorageAdapter(StorageAdapter):
         except Exception as e:
             logger.error(f"Failed to get image from S3: {str(e)}")
             return None
+
+    async def schedule_cleanup(self, key: str, delay_hours: int = 24) -> None:
+        """Schedule automatic deletion of image after delay."""
+        try:
+            # In production, use a job queue to schedule deletion
+            # For now, set an expiration on the object
+            from datetime import timedelta
+            expiration = datetime.now() + timedelta(hours=delay_hours)
+            self.s3_client.put_object_tagging(
+                Bucket=self.bucket,
+                Key=key,
+                Tagging={
+                    'TagSet': [
+                        {'Key': 'auto-delete', 'Value': expiration.isoformat()}
+                    ]
+                }
+            )
+            logger.info(f"Scheduled cleanup for {key} at {expiration}")
+        except Exception as e:
+            logger.error(f"Failed to schedule cleanup for {key}: {str(e)}")
 
 
 class StorageService:

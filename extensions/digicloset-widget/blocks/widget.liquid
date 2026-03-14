@@ -1,0 +1,10 @@
+{{#if settings.enable_widget}}
+<div id="digicloset-tryon-widget" data-product-id="{{ product.id }}" data-shop-domain="{{ shop.domain }}">
+  <button id="digicloset-tryon-button" style="background-color: {{ settings.button_color }};">
+    {{ settings.button_text }}
+  </button>
+</div>
+
+<script src="{{ 'widget.js' | asset_url }}" defer></script>
+<link rel="stylesheet" href="{{ 'widget.css' | asset_url }}">
+{{/if}}

@@ -1,0 +1,28 @@
+name = "DigiCloset Virtual Try-On Widget"
+handle = "digicloset-widget"
+type = "theme_app_extension"
+
+[build]
+command = "npm run build"
+
+[api_version]
+version = "2024-01"
+
+[settings]
+[[settings.fields]]
+name = "enable_widget"
+type = "checkbox"
+label = "Enable Virtual Try-On Widget"
+default = true
+
+[[settings.fields]]
+name = "button_text"
+type = "text"
+label = "Try-On Button Text"
+default = "Try On This Item"
+
+[[settings.fields]]
+name = "button_color"
+type = "color"
+label = "Button Color"
+default = "#000000"

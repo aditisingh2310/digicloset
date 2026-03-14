@@ -32,7 +32,7 @@ async def shopify_install(shop: str):
 
     params = {
         "client_id": settings.shopify_api_key,
-        "scope": "read_products,write_products",
+        "scope": "read_products,read_themes",  # Reduced to least privilege
         "redirect_uri": f"/api/auth/callback",
         "state": state,
     }

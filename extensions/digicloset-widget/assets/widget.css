@@ -1,0 +1,267 @@
+/* DigiCloset Virtual Try-On Widget Styles */
+
+#digicloset-tryon-widget {
+  margin: 20px 0;
+}
+
+#digicloset-tryon-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+#digicloset-tryon-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Modal Styles */
+.digicloset-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.digicloset-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.digicloset-modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.digicloset-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.digicloset-modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.digicloset-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.digicloset-modal-body {
+  padding: 20px;
+}
+
+/* Upload Form */
+.digicloset-upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.digicloset-upload-section h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.digicloset-drop-zone {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.digicloset-drop-zone:hover,
+.digicloset-drop-zone.drag-active {
+  border-color: #007cba;
+  background: #f8f9fa;
+}
+
+.digicloset-drop-content p {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+.digicloset-drop-content button {
+  background: none;
+  border: none;
+  color: #007cba;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.digicloset-preview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.digicloset-garment-preview {
+  text-align: center;
+}
+
+.digicloset-submit-btn {
+  padding: 12px 24px;
+  background: #007cba;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: center;
+}
+
+.digicloset-submit-btn:hover:not(:disabled) {
+  background: #005a87;
+}
+
+.digicloset-submit-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Processing */
+.digicloset-processing {
+  text-align: center;
+  padding: 40px;
+}
+
+.digicloset-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007cba;
+  border-radius: 50%;
+  animation: digicloset-spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes digicloset-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Result */
+.digicloset-result {
+  text-align: center;
+}
+
+.digicloset-result h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+}
+
+.digicloset-result img {
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.digicloset-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.digicloset-actions button {
+  padding: 10px 20px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.digicloset-actions button:first-child {
+  background: #007cba;
+  color: white;
+  border-color: #007cba;
+}
+
+/* Error */
+.digicloset-error {
+  text-align: center;
+  padding: 40px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+}
+
+.digicloset-error p {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+}
+
+.digicloset-error button {
+  background: #c33;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .digicloset-modal-content {
+    width: 95%;
+    margin: 20px;
+  }
+
+  .digicloset-modal-header,
+  .digicloset-modal-body {
+    padding: 15px;
+  }
+
+  .digicloset-drop-zone {
+    padding: 20px;
+  }
+
+  .digicloset-upload-form {
+    gap: 15px;
+  }
+}
