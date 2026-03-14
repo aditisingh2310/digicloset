@@ -299,3 +299,14 @@ For refactoring details, see [REFACTORING_GUIDE.md](./REFACTORING_GUIDE.md).
 ## License
 
 See [LICENSE](./LICENSE)
+
+
+## Shopify Merchant Install (Production)
+
+1. In Shopify Partner Dashboard, create a **public app** and configure the app URL + redirection URL: `https://<your-domain>/api/auth/callback`.
+2. Configure required env vars (`SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `DATABASE_URL`, `REDIS_URL`, `REPLICATE_API_TOKEN`) using `.env.example` as a template.
+3. Deploy with Docker (`docker compose -f docker-compose.dev.yml up --build`) and expose HTTPS (required by Shopify OAuth/webhooks).
+4. Install from `/api/auth/install?shop=<shop>.myshopify.com` and verify webhooks under `/api/webhooks/*`.
+5. Confirm merchant dashboard endpoint `/api/merchant/dashboard` and widget toggle `/api/merchant/settings`.
+
+See `docs/shopify-architecture.md`, `docs/shopify-webhooks.md`, and `docs/billing.md` for detailed production topology.

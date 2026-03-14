@@ -15,6 +15,10 @@ from app.api.oauth import router as oauth_router
 from app.api.webhooks import router as webhooks_router
 from app.middleware.observability import latency_middleware
 from app.middleware.db_session import db_session_middleware
+from app.middleware.billing import billing_enforcement_middleware
+from app.middleware.rate_limiter import RateLimitMiddleware
+import os
+import logging
 
 
 # Configure structured logging early
@@ -57,6 +61,7 @@ app.middleware("http")(metrics_middleware)
 app.middleware("http")(request_timeout_middleware)
 app.middleware("http")(latency_middleware)
 app.middleware("http")(db_session_middleware)
+app.add_middleware(RateLimitMiddleware)
 
 # Billing enforcement should run after tenant middleware (tenant_middleware attaches tenant)
 
@@ -142,7 +147,17 @@ def health() -> dict:
     except Exception:
         details["redis"] = False
         ok = False
-    return {"status": "ok" if ok else "unhealthy", "details": details}
+    if ok:
+        return {"status": "ok"}
+    return {"status": "unhealthy", "details": details}
+
+
+@app.get("/health/ready")
+def readiness() -> dict:
+    """Readiness endpoint validating critical runtime configuration."""
+    required = ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET"]
+    missing = [name for name in required if not os.environ.get(name)]
+    return {"ready": len(missing) == 0, "missing": missing}
 
 
 @app.on_event("shutdown")

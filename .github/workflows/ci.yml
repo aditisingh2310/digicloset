@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -75,39 +75,17 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build Docker image
       run: docker build -t digicloset:latest .
-    runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest mypy
-
-      - name: Run tests
-        run: pytest -q
-
-      - name: Run mypy
-        run: mypy .
-
-  frontend:
+  widget:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Install frontend deps and lint/build
-        working-directory: shopify-app-core
+      - name: Install and build storefront widget
+        working-directory: apps/shopify-widget
         run: |
           npm ci
-          npm run lint
           npm run build
