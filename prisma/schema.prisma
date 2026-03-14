@@ -23,10 +23,90 @@ model AiResult {
   @@index([shop, productId, createdAt], map: "idx_ai_result_shop_product_created_at")
 }
 model Shop {
-  id                 Int      @id @default(autoincrement())
-  shopDomain         String   @unique
+  id                 Int           @id @default(autoincrement())
+  shopDomain         String        @unique
   accessToken        String
   scope              String?
-  subscriptionStatus String   @default("inactive")
-  installedAt        DateTime @default(now())
+  subscriptionStatus String        @default("inactive")
+  installedAt        DateTime      @default(now())
+  
+  // Relationships
+  plans              StorePlan?
+  usageRecords       TryonUsage[]
+  jobRecords         TryonJob[]
+  
+  @@index([shopDomain])
 }
+
+// ============ Billing & Usage Tracking ============
+
+model StorePlan {
+  id                String    @id @default(cuid())
+  shopId            Int       @unique
+  shop              Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  plan              String    @default("free") // free, pro, enterprise
+  generationLimit   Int       @default(100) // monthly limit
+  usedGenerations   Int       @default(0)
+  monthStartDate    DateTime  @default(now())
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([shopId])
+  @@index([plan])
+}
+
+model TryonUsage {
+  id                String    @id @default(cuid())
+  shopId            Int
+  shop              Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  jobId             String    @unique
+  productId         String
+  
+  generationTime    Int       // milliseconds
+  imageCached       Boolean   @default(false)
+  s3Url             String?
+  
+  createdAt         DateTime  @default(now())
+  
+  @@index([shopId])
+  @@index([createdAt])
+  @@index([shopId, createdAt])
+}
+
+// ============ Job Queue Management ============
+
+model TryonJob {
+  id                String    @id @default(cuid())
+  shopId            Int
+  shop              Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  celeryTaskId      String    @unique
+  status            String    @default("pending") // pending, processing, completed, failed
+  
+  userImageUrl      String
+  garmentImageUrl   String
+  productId         String
+  category          String    @default("upper_body")
+  
+  resultImageUrl    String?
+  generatedAt       DateTime?
+  
+  errorMessage      String?
+  retryCount        Int       @default(0)
+  maxRetries        Int       @default(2)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([shopId, status])
+}
+
+// ============ Cache layer (Redis) - struct reference ============
+// Note: Cache is stored in Redis, not in database
+// Structure: tryon_cache:{hash} -> {image_url, timestamp, expiry_24h}

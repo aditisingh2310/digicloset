@@ -5,6 +5,7 @@ from typing import Callable
 
 from app.core.config import settings
 from app.core.plans import PLANS
+from app.services.billing_service import BillingService
 
 
 async def billing_enforcement_middleware(request: Request, call_next: Callable):
@@ -23,14 +24,11 @@ async def billing_enforcement_middleware(request: Request, call_next: Callable):
     if tenant is None:
         raise HTTPException(status_code=401, detail="Missing tenant")
 
-    # storage should be attached to app.state.store by startup (fallback handled in service)
-    store = getattr(request.app.state, "store", None)
-    from app.services.billing_service import BillingService, InMemoryStore
+    db = getattr(request.state, "db", None)
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not available")
 
-    if store is None:
-        store = InMemoryStore()
-
-    svc = BillingService(tenant.shop_domain, tenant.access_token, store)
+    svc = BillingService(tenant.shop_domain, tenant.access_token, db)
     allowed = await svc.is_active_or_in_trial()
     if not allowed:
         raise HTTPException(status_code=402, detail="subscription_inactive")

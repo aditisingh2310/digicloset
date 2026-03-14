@@ -1,0 +1,70 @@
+groups:
+  - name: api_service
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(backend_api_requests_total{status=~"5.."}[5m])) by (job)) /
+          (sum(rate(backend_api_requests_total[5m])) by (job)) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      - alert: SlowRequests
+        expr: |
+          histogram_quantile(0.95, rate(backend_api_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow requests on {{ $labels.job }}"
+          description: "P95 latency is {{ $value | humanizeDuration }}"
+
+  - name: inference_service
+    interval: 30s
+    rules:
+      - alert: SlowInference
+        expr: |
+          histogram_quantile(0.95, rate(backend_ai_inference_duration_seconds_bucket[5m])) > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow AI inference detected"
+          description: "P95 inference time is {{ $value | humanizeDuration }}"
+
+      - alert: InferenceFailures
+        expr: |
+          sum(rate(backend_ai_inference_duration_seconds_count{status="failed"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI inference failures detected"
+          description: "Failure rate is {{ $value | humanize }}/sec"
+
+  - name: infrastructure
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: DiskSpaceRunningOut
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lowerfs|squashfs|vfat"} / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.device }}"
+          description: "Only {{ $value | humanizePercentage }} space remaining"

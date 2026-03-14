@@ -14,8 +14,7 @@ from app.middleware.timeout import request_timeout_middleware
 from app.api.oauth import router as oauth_router
 from app.api.webhooks import router as webhooks_router
 from app.middleware.observability import latency_middleware
-from app.middleware.billing import billing_enforcement_middleware
-import os
+from app.middleware.db_session import db_session_middleware
 
 
 # Configure structured logging early
@@ -57,6 +56,7 @@ if origins:
 app.middleware("http")(metrics_middleware)
 app.middleware("http")(request_timeout_middleware)
 app.middleware("http")(latency_middleware)
+app.middleware("http")(db_session_middleware)
 
 # Billing enforcement should run after tenant middleware (tenant_middleware attaches tenant)
 

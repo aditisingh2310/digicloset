@@ -1,0 +1,69 @@
+# ============================================================
+# Celery Worker Dockerfile
+#
+# Production image for running:
+# - Celery worker processes
+# - Celery beat scheduler
+# - Flower monitoring UI
+# ============================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# ============================================================
+# SYSTEM DEPENDENCIES
+# ============================================================
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    postgresql-client \
+    git \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# PYTHON DEPENDENCIES
+# ============================================================
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements
+COPY requirements-celery.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-celery.txt
+
+# ============================================================
+# APPLICATION CODE
+# ============================================================
+
+# Copy queue worker code
+COPY queue_worker/ ./queue_worker/
+COPY config/ ./config/
+
+# Create non-root user for security
+RUN useradd -m -u 1000 celery && \
+    chown -R celery:celery /app
+
+USER celery
+
+# ============================================================
+# HEALTHCHECK
+# ============================================================
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "from queue_worker import app, check_celery_health; print(check_celery_health())"
+
+# ============================================================
+# DEFAULT COMMAND
+# ============================================================
+
+# By default, run Celery worker
+# Can be overridden with: docker run ... COMMAND
+CMD ["celery", "-A", "queue_worker.app", "worker", \
+     "--loglevel=INFO", \
+     "--concurrency=4", \
+     "-Q", "tryon,default"]

@@ -172,3 +172,12 @@ class ShopifyClient:
         if last_exception:
             raise last_exception
         raise requests.HTTPError(f"Shopify request failed after {self.max_retries} attempts")
+
+    def graphql_request(self, query: str, variables: Optional[Dict[str, Any]] = None, timeout: Optional[float] = 10.0) -> Dict[str, Any]:
+        """Perform a GraphQL request against Shopify Admin API."""
+        url = f"https://{self.shop_domain}/admin/api/2024-01/graphql.json"
+        payload = {"query": query}
+        if variables:
+            payload["variables"] = variables
+        resp = self.request("POST", url, json=payload, timeout=timeout)
+        return resp.json()
