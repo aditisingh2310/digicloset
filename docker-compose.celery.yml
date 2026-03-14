@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # REDIS - Message Broker & Result Backend
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: digicloset-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --loglevel notice
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ============================================================
+  # CELERY WORKER - Try-On Task Processing
+  # ============================================================
+  celery-worker-tryon:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: digicloset-celery-worker-tryon
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      - DATABASE_URL=${DATABASE_URL}
+      - INFERENCE_SERVICE_URL=${INFERENCE_SERVICE_URL:-http://inference-service:8000}
+      - STORAGE_TYPE=${STORAGE_TYPE:-s3}
+      - S3_BUCKET=${S3_BUCKET:-digicloset-tryon-results}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - CELERY_WORKER_CONCURRENCY=${CELERY_WORKER_CONCURRENCY:-4}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./queue_worker:/app/queue_worker:ro
+      - ./requirements-celery.txt:/app/requirements-celery.txt:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      celery -A queue_worker.app worker
+      --loglevel=${LOG_LEVEL:-INFO}
+      --concurrency=${CELERY_WORKER_CONCURRENCY:-4}
+      -Q tryon,default
+      --prefetch-multiplier=4
+      --time-limit=900
+      --soft-time-limit=840
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "queue_worker.app", "inspect", "active"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================
+  # CELERY BEAT - Scheduled Task Runner
+  # ============================================================
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: digicloset-celery-beat
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      - DATABASE_URL=${DATABASE_URL}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./queue_worker:/app/queue_worker:ro
+      - celery-beat-schedule:/app/celery-beat-schedule
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      celery -A queue_worker.app beat
+      --loglevel=${LOG_LEVEL:-INFO}
+      --schedule=/app/celery-beat-schedule/celerybeat-schedule
+    networks:
+      - internal
+    restart: unless-stopped
+
+  # ============================================================
+  # CELERY FLOWER - Task Monitoring UI
+  # ============================================================
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: digicloset-flower
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      celery -A queue_worker.app flower
+      --port=5555
+      --broker=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      --persistent=True
+      --db=/data/flower.db
+    volumes:
+      - flower-data:/data
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/api/workers"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================
+  # INFERENCE SERVICE - ML Model Hosting
+  # ============================================================
+  inference-service:
+    image: ghcr.io/digicloset/inference-service:latest
+    container_name: digicloset-inference
+    environment:
+      - MODEL_NAME=${MODEL_NAME:-stable-diffusion-v1.5}
+      - MODEL_PRECISION=${MODEL_PRECISION:-fp16}
+      - DEVICE=${DEVICE:-cuda}
+      - PORT=8000
+    ports:
+      - "8001:8000"
+    volumes:
+      - ml-models:/app/models
+    gpus:
+      - all  # Requires nvidia-docker
+    networks:
+      - internal
+    restart: unless-stopped
+    # Note: This is a placeholder. Real implementation depends on your ML service
+
+volumes:
+  redis-data:
+    driver: local
+  celery-beat-schedule:
+    driver: local
+  flower-data:
+    driver: local
+  ml-models:
+    driver: local
+
+networks:
+  internal:
+    driver: bridge

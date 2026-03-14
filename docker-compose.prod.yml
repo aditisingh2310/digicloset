@@ -1,0 +1,194 @@
+version: '3.8'
+
+services:
+  # ============ Backend API ============
+  backend-api:
+    build:
+      context: ./services/backend-api
+      dockerfile: Dockerfile
+    container_name: digicloset-backend-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=production
+      - CORS_ORIGINS=http://localhost:3000,http://shopify-widget:3000
+      - AI_INFERENCE_URL=http://ai-inference:8002
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/digicloset
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+    depends_on:
+      - postgres
+      - redis
+      - ai-inference
+    networks:
+      - digicloset
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    volumes:
+      - ./services/backend-api/app:/app/app
+
+  # ============ AI Inference Service ============
+  ai-inference:
+    build:
+      context: ./services/ai-inference
+      dockerfile: Dockerfile
+    container_name: digicloset-ai-inference
+    ports:
+      - "8002:8002"
+    environment:
+      - ENV=production
+      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - REPLICATE_MODEL=replicate/try-on:latest
+      - REPLICATE_WEBHOOK_URL=http://backend-api:8000/webhooks/inference
+      - LOG_LEVEL=INFO
+    networks:
+      - digicloset
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    volumes:
+      - ./services/ai-inference/app:/app/app
+
+  # ============ Database ============
+  postgres:
+    image: postgres:15-alpine
+    container_name: digicloset-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=digicloset
+    ports:
+      - "5432:5432"
+    networks:
+      - digicloset
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============ Cache Layer ============
+  redis:
+    image: redis:7-alpine
+    container_name: digicloset-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - digicloset
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============ Monitoring - Prometheus ============
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: digicloset-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - digicloset
+    depends_on:
+      - backend-api
+      - ai-inference
+      - node-exporter
+    restart: unless-stopped
+
+  # ============ Monitoring - Grafana ============
+  grafana:
+    image: grafana/grafana:latest
+    container_name: digicloset-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - digicloset
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ============ Exporters ============
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: digicloset-node-exporter
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - digicloset
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: digicloset-postgres-exporter
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres:5432/digicloset?sslmode=disable
+    networks:
+      - digicloset
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: digicloset-redis-exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    networks:
+      - digicloset
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+networks:
+  digicloset:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:

@@ -23,7 +23,9 @@ interface TryOnResult {
  */
 export default function TryOnWidget() {
   const [state, setState] = useState('upload'); // upload | processing | result | error
-  const [result, setResult] = useState<TryOnResult | null>(null);
+  const [result, setResult] = useState<T
+  
+  t | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleUpload = async (userImage: string, garmentImage: string): Promise<void> => {
