@@ -12,6 +12,7 @@ class SubscriptionRecord(BaseModel):
     status: str = "inactive"  # inactive, pending, active, cancelled
     trial_ends_at: Optional[datetime] = None
     activated_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
 
 
 class UsageRecord(BaseModel):

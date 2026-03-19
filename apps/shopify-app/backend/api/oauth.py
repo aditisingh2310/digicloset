@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import secrets
+import logging
 from typing import Optional
 
 import requests
@@ -10,8 +11,10 @@ from starlette.responses import RedirectResponse
 
 from app.core.config import settings
 from app.core.security import verify_oauth_hmac
+from app.services.shopify_client import ShopifyClient
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 def _redis() -> Optional[object]:
@@ -74,11 +77,28 @@ async def shopify_callback(request: Request, response: Response, state: Optional
     if not access_token:
         raise HTTPException(status_code=400, detail="Failed to obtain access token")
 
+    # Register webhooks
+    client = ShopifyClient(shop, access_token)
+    webhooks = [
+        {"topic": "app/uninstalled", "address": f"{settings.base_url}/api/webhooks/app-uninstalled"},
+        {"topic": "customers/data_request", "address": f"{settings.base_url}/api/webhooks/customers/data_request"},
+        {"topic": "customers/redact", "address": f"{settings.base_url}/api/webhooks/customers/redact"},
+        {"topic": "shop/redact", "address": f"{settings.base_url}/api/webhooks/shop/redact"},
+    ]
+    for webhook in webhooks:
+        try:
+            client.request("POST", "/admin/api/2024-01/webhooks.json", json={"webhook": webhook})
+        except Exception as e:
+            logger.warning("Failed to register webhook %s: %s", webhook["topic"], e)
+
     # Store token server-side in Redis with a session id and set secure cookie
     sess = secrets.token_urlsafe(32)
     r = _redis()
     if r:
         r.setex(f"session:{sess}", 3600 * 24 * 7, json.dumps({"shop": shop, "access_token": access_token}))
+        r.setex(f"session_shop:{sess}", 3600 * 24 * 7, shop)
+        r.sadd(f"shop_sessions:{shop}", sess)
+        r.expire(f"shop_sessions:{shop}", 3600 * 24 * 30)
 
     # set cookie with HttpOnly, Secure and SameSite=Lax to reduce CSRF
     response = RedirectResponse(url="/" )

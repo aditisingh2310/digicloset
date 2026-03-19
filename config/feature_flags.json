@@ -1,7 +1,7 @@
 {
   "verified_revenue_attribution": false,
   "before_after_conversion_tracking": false,
-  "ai_impact_tagging": false,
+  "ai_impact_tagging": true,
   "continuous_background_reoptimization": false,
   "underperforming_auto_detection": false,
   "seasonal_keyword_auto_updates": false,

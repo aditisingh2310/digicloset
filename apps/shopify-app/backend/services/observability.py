@@ -15,12 +15,15 @@ Features:
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
-import redis
 import os
+try:
+    import redis
+except Exception:  # pragma: no cover - optional dependency
+    redis = None
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +96,7 @@ class ObservabilityService:
     def __init__(
         self,
         redis_url: str = None,
-        redis_client: redis.Redis = None,
+        redis_client: Any = None,
         enable_structured_logging: bool = True,
     ):
         self.redis_url = redis_url or os.getenv(
@@ -104,6 +107,10 @@ class ObservabilityService:
         self.enable_structured_logging = enable_structured_logging
 
         if not self.redis_client:
+            if redis is None:
+                logger.warning("Redis package not available. Observability disabled.")
+                self.redis_client = None
+                return
             try:
                 self.redis_client = redis.from_url(
                     self.redis_url,

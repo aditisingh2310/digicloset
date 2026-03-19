@@ -4,6 +4,9 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+  },
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/index.tsx'),

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import secrets
+import logging
 from datetime import datetime
 from typing import Optional
 from urllib.parse import urlencode
@@ -19,6 +20,7 @@ from app.services.shopify_client import ShopifyClient
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 SHOP_DOMAIN_RE = re.compile(r"^[a-z0-9][a-z0-9-]*\.myshopify\.com$")
+logger = logging.getLogger(__name__)
 
 def get_db():
     db = SessionLocal()
@@ -100,22 +102,24 @@ async def shopify_callback(request: Request, response: Response, state: Optional
     # Register webhooks
     client = ShopifyClient(shop, access_token)
     webhooks = [
-        {"topic": "app/uninstalled", "address": f"{settings.base_url}/api/webhooks/app_uninstalled"},
-        {"topic": "shop/update", "address": f"{settings.base_url}/api/webhooks/shop_update"},
-        {"topic": "customers/data_request", "address": f"{settings.base_url}/api/webhooks/customers_data_request"},
-        {"topic": "customers/redact", "address": f"{settings.base_url}/api/webhooks/customers_redact"},
-        {"topic": "shop/redact", "address": f"{settings.base_url}/api/webhooks/shop_redact"},
+        {"topic": "app/uninstalled", "address": f"{settings.base_url}/api/webhooks/app-uninstalled"},
+        {"topic": "customers/data_request", "address": f"{settings.base_url}/api/webhooks/customers/data_request"},
+        {"topic": "customers/redact", "address": f"{settings.base_url}/api/webhooks/customers/redact"},
+        {"topic": "shop/redact", "address": f"{settings.base_url}/api/webhooks/shop/redact"},
     ]
     for webhook in webhooks:
         try:
             client.request("POST", "/admin/api/2024-01/webhooks.json", json={"webhook": webhook})
         except Exception as e:
-            print(f"Failed to register webhook {webhook['topic']}: {e}")
+            logger.warning("Failed to register webhook %s: %s", webhook["topic"], e)
 
     # Store token server-side in Redis with a session id and set secure cookie
     sess = secrets.token_urlsafe(32)
     if redis_client:
         redis_client.setex(f"session:{sess}", 3600 * 24 * 7, json.dumps({"shop": shop, "access_token": access_token}))
+        redis_client.setex(f"session_shop:{sess}", 3600 * 24 * 7, shop)
+        redis_client.sadd(f"shop_sessions:{shop}", sess)
+        redis_client.expire(f"shop_sessions:{shop}", 3600 * 24 * 30)
         redis_client.delete(f"oauth_state:{returned_state}")
 
     response = RedirectResponse(url="/")

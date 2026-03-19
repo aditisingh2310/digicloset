@@ -6,6 +6,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 from fastapi import Request, HTTPException
+from starlette.responses import JSONResponse
+
+from app.utils.errors import ErrorResponse, ErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +60,17 @@ async def tenant_middleware(request: Request, call_next):
                     auth = None
 
     if not shop or not auth:
-        raise HTTPException(status_code=401, detail="Missing shop or access token")
+        request_id = getattr(request.state, "request_id", None)
+        response = ErrorResponse.unauthorized(
+            detail="Missing shop or access token",
+            code=ErrorCode.INVALID_CREDENTIALS,
+            request_id=request_id,
+        )
+        return JSONResponse(
+            status_code=401,
+            content=response,
+            headers={"X-Request-ID": response.get("request_id")},
+        )
 
     # support 'Bearer <token>' format
     token = auth.split(" ")[-1]
@@ -74,7 +87,17 @@ async def tenant_middleware(request: Request, call_next):
     session_shop = request.headers.get("x-session-shop")
     if session_shop and session_shop != shop:
         # mismatched session indicates potential tenant confusion or session fixation
-        raise HTTPException(status_code=403, detail="Session shop mismatch")
+        request_id = getattr(request.state, "request_id", None)
+        response = ErrorResponse.forbidden(
+            detail="Session shop mismatch",
+            code=ErrorCode.INSUFFICIENT_PERMISSIONS,
+            request_id=request_id,
+        )
+        return JSONResponse(
+            status_code=403,
+            content=response,
+            headers={"X-Request-ID": response.get("request_id")},
+        )
 
     response = await call_next(request)
     return response

@@ -11,7 +11,6 @@ Features:
 - Returns HTTP 429 with Retry-After header
 - Thread-safe, async-compatible
 """
-import redis
 import logging
 from typing import Dict, Callable, Optional
 from datetime import datetime, timedelta
@@ -21,6 +20,15 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from fastapi import HTTPException
 import os
+
+try:
+    import redis
+    RedisError = redis.RedisError
+except Exception:  # pragma: no cover - optional dependency
+    redis = None
+
+    class RedisError(Exception):
+        pass
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +55,10 @@ class RateLimiter:
     
     def __init__(self, config: RateLimitConfig = None):
         self.config = config or RateLimitConfig()
+        if redis is None:
+            logger.warning("Redis package not available. Rate limiting disabled.")
+            self.redis_client = None
+            return
         try:
             self.redis_client = redis.from_url(
                 self.config.redis_url,
@@ -119,7 +131,7 @@ class RateLimiter:
             else:
                 return False, ttl
         
-        except redis.RedisError as e:
+        except RedisError as e:
             logger.error(f"Redis error in rate limiter: {e}")
             # Fail open on Redis errors
             return True, None

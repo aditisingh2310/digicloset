@@ -116,8 +116,11 @@ class JSONStore:
     def save_user(self, user: Dict):
         path = self._path("users")
         arr = self._read(path)
-        # users identified by api_key
-        arr = [u for u in arr if u.get("api_key") != user.get("api_key")]
+        # users identified by api_key or user_id
+        arr = [
+            u for u in arr
+            if u.get("api_key") != user.get("api_key") and u.get("user_id") != user.get("user_id")
+        ]
         arr.append(user)
         self._write(path, arr)
 
@@ -128,8 +131,35 @@ class JSONStore:
                 return u
         return None
 
+    def get_user(self, user_id: str) -> Optional[Dict]:
+        arr = self._read(self._path("users"))
+        for u in arr:
+            if u.get("user_id") == user_id:
+                return u
+        return None
+
     def list_users(self) -> List[Dict]:
         return self._read(self._path("users"))
+
+    def user_has_role(self, user_id: str, store_id: str, role: str) -> bool:
+        user = self.get_user(user_id)
+        if not user:
+            return False
+        roles = user.get("roles", {})
+        if isinstance(roles, list):
+            return role in roles
+        return role in roles.get(store_id, [])
+
+    def list_user_stores(self, user_id: str) -> List[str]:
+        user = self.get_user(user_id)
+        if not user:
+            return []
+        if isinstance(user.get("stores"), list):
+            return list(user.get("stores"))
+        roles = user.get("roles", {})
+        if isinstance(roles, dict):
+            return list(roles.keys())
+        return []
 
     # --- AI credit usage tracking
     def log_ai_credit_usage(self, store_id: str, credits: float, reason: str = ""):

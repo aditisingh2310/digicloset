@@ -1,4 +1,27 @@
 {% if product.metafields.digicloset_ai %}
+  <style>
+    .digicloset-badge {
+      border: 1px solid #e5e5e5;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 12px 0;
+      background: #ffffff;
+      color: #1a1a1a;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .digicloset-badge strong {
+      display: block;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #111111;
+      margin-bottom: 4px;
+    }
+    .digicloset-badge p {
+      margin: 0;
+    }
+  </style>
   <div class="digicloset-badge">
     <strong>AI Optimized</strong>
     <p>{{ product.metafields.digicloset_ai.alt_text }}</p>

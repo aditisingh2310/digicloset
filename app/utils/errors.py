@@ -332,27 +332,36 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Handle FastAPI HTTPException with request_id."""
     request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
-    
+
     # If already structured, pass through
     if isinstance(exc.detail, dict) and "request_id" in exc.detail:
         return JSONResponse(
             status_code=exc.status_code,
             content=exc.detail,
-            headers={**exc.headers, "X-Request-ID": request_id},
+            headers={**(exc.headers or {}), "X-Request-ID": request_id},
         )
-    
+
+    status_code_map = {
+        401: ErrorCode.INVALID_CREDENTIALS,
+        403: ErrorCode.INSUFFICIENT_PERMISSIONS,
+        404: ErrorCode.RESOURCE_NOT_FOUND,
+        409: ErrorCode.RESOURCE_ALREADY_EXISTS,
+        429: ErrorCode.RATE_LIMIT_EXCEEDED,
+        503: ErrorCode.SERVICE_UNAVAILABLE,
+    }
+
     # Build standardized response
     response = ErrorResponse.build(
         status_code=exc.status_code,
         error=exc.detail or "Request Error",
-        code=ErrorCode.INVALID_INPUT,
+        code=status_code_map.get(exc.status_code, ErrorCode.INVALID_INPUT),
         request_id=request_id,
     )
     
     return JSONResponse(
         status_code=exc.status_code,
         content=response,
-        headers={**exc.headers, "X-Request-ID": request_id},
+        headers={**(exc.headers or {}), "X-Request-ID": request_id},
     )
 
 

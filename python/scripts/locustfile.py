@@ -1,30 +1,34 @@
 from locust import HttpUser, task, between
+import os
+
 
 class DigiclosetUser(HttpUser):
-    wait_time = between(1, 5)
+    wait_time = between(1, 3)
 
     def on_start(self):
-        # Simulate login
-        self.client.post("/auth/v1/token?grant_type=password", json={
-            "email": "testuser@example.com",
-            "password": "password123"
-        })
-
-    @task(2)
-    def browse_products(self):
-        self.client.get("/api/products")
-
-    @task(1)
-    def upload_product(self):
-        self.client.post("/api/products", json={
-            "name": "Test Item",
-            "category": "Shirts"
-        })
+        self.shop = os.getenv("SHOP_DOMAIN", "loadtest.myshopify.com")
+        self.token = os.getenv("ACCESS_TOKEN", "test-token")
+        self.headers = {
+            "x-shopify-shop-domain": self.shop,
+            "authorization": f"Bearer {self.token}",
+        }
 
     @task(3)
-    def try_on_virtual(self):
-        self.client.get("/api/tryon/sample")
+    def dashboard(self):
+        self.client.get("/api/merchant/dashboard", headers=self.headers)
+
+    @task(2)
+    def update_widget_setting(self):
+        self.client.post(
+            "/api/merchant/settings",
+            json={"widget_enabled": True},
+            headers=self.headers,
+        )
 
     @task(1)
-    def logout(self):
-        self.client.post("/auth/v1/logout")
+    def ai_infer(self):
+        self.client.post(
+            "/ai/infer",
+            json={"prompt": "Suggest an outfit", "max_tokens": 64},
+            headers=self.headers,
+        )

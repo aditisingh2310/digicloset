@@ -13,4 +13,4 @@ def test_invalid_oauth_hmac(client: TestClient):
     }
     res = client.get("/api/auth/callback", params=params)
     assert res.status_code == 400
-    assert res.json().get("detail") in ("Invalid HMAC", "Missing HMAC")
+    assert res.json().get("error") in ("Invalid HMAC", "Missing HMAC")

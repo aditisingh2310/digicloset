@@ -1,4 +1,6 @@
-import fakeredis
+import pytest
+
+fakeredis = pytest.importorskip("fakeredis")
 from jobs import redis_conn
 from rq import Queue
 from rq.job import Job

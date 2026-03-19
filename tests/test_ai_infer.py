@@ -1,9 +1,9 @@
 from app.ai.schemas import AIRequest
 
 
-def test_ai_infer_endpoint(client, mock_ai_service):
+def test_ai_infer_endpoint(client, mock_ai_service, tenant_headers_a):
     payload = {"prompt": "hello world", "max_tokens": 32}
-    resp = client.post("/api/ai/infer", json=payload)
+    resp = client.post("/api/ai/infer", json=payload, headers=tenant_headers_a)
     assert resp.status_code == 200
     body = resp.json()
     assert body["text"].startswith("echo: hello world")

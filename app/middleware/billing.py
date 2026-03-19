@@ -24,11 +24,13 @@ async def billing_enforcement_middleware(request: Request, call_next: Callable):
     if tenant is None:
         raise HTTPException(status_code=401, detail="Missing tenant")
 
+    store = getattr(request.app.state, "store", None)
     db = getattr(request.state, "db", None)
-    if db is None:
+    backend = store or db
+    if backend is None:
         raise HTTPException(status_code=500, detail="Database not available")
 
-    svc = BillingService(tenant.shop_domain, tenant.access_token, db)
+    svc = BillingService(tenant.shop_domain, tenant.access_token, backend)
     allowed = await svc.is_active_or_in_trial()
     if not allowed:
         raise HTTPException(status_code=402, detail="subscription_inactive")

@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from app.api.router import api_router
 from app.ai.services.ai_service import AIService
 from app.ai.services.ai_with_cb import AIServiceWithCircuitBreaker
@@ -9,13 +9,16 @@ from jobs.redis_conn import get_redis_connection
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.request_id import request_id_middleware
 from app.core.logging_conf import configure_logging
-from app.core.exceptions import global_exception_handler
+from app.utils.errors import general_exception_handler, http_exception_handler, validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from app.middleware.timeout import request_timeout_middleware
 from app.api.oauth import router as oauth_router
 from app.api.webhooks import router as webhooks_router
 from app.middleware.observability import latency_middleware
 from app.middleware.billing import billing_enforcement_middleware
+from app.middleware.db_session import db_session_middleware
 import os
+import logging
 
 
 # Configure structured logging early
@@ -75,7 +78,7 @@ async def startup_event() -> None:
 
     # Initialize Redis connection for shared services (cache, sessions, queues)
     try:
-        app.state.redis = get_redis_connection()
+        app.state.redis = get_redis_connection(decode_responses=True)
     except Exception:
         app.state.redis = None
 
@@ -106,12 +109,18 @@ async def startup_event() -> None:
 
 # Tenant isolation middleware must run for all API requests to guarantee a tenant
 # context is available and to reject requests missing tenant headers.
-app.middleware("http")(request_id_middleware)
-app.middleware("http")(tenant_middleware)
+# NOTE: FastAPI applies function-based middleware in reverse order of registration.
+# Register billing -> tenant -> db_session -> request_id so execution is:
+# request_id -> db_session -> tenant -> billing.
 app.middleware("http")(billing_enforcement_middleware)
+app.middleware("http")(tenant_middleware)
+app.middleware("http")(db_session_middleware)
+app.middleware("http")(request_id_middleware)
 
-# Register global exception handler
-app.add_exception_handler(Exception, global_exception_handler)
+# Register exception handlers for consistent API errors
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
 
 # Mount application routers under /api

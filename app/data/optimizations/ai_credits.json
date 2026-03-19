@@ -1,0 +1,22 @@
+[
+  {
+    "store_id": "store-1",
+    "credits": 10.5,
+    "reason": "test"
+  },
+  {
+    "store_id": "store-1",
+    "credits": 10.5,
+    "reason": "test"
+  },
+  {
+    "store_id": "store-1",
+    "credits": 10.5,
+    "reason": "test"
+  },
+  {
+    "store_id": "store-1",
+    "credits": 10.5,
+    "reason": "test"
+  }
+]

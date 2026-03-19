@@ -1,7 +1,7 @@
 import asyncio
 
 
-def test_ai_timeout_fallback(client, monkeypatch):
+def test_ai_timeout_fallback(client, monkeypatch, tenant_headers_a):
     from app.main import app as fastapi_app
 
     class SlowAI:
@@ -15,7 +15,7 @@ def test_ai_timeout_fallback(client, monkeypatch):
     settings.ai_inference_timeout = 0.01
     fastapi_app.state.ai_service = SlowAI()
 
-    res = client.post("/api/ai/infer", json={"prompt": "hello", "max_tokens": 5})
+    res = client.post("/api/ai/infer", json={"prompt": "hello", "max_tokens": 5}, headers=tenant_headers_a)
     assert res.status_code == 200
     data = res.json()
     assert data["text"] == "The AI service timed out. Please try again later."

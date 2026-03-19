@@ -19,8 +19,12 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
-import redis
 import os
+
+try:
+    import redis
+except Exception:  # pragma: no cover - optional dependency
+    redis = None
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +167,7 @@ class AIMeteringService:
     def __init__(
         self,
         redis_url: str = None,
-        redis_client: redis.Redis = None,
+        redis_client: Any = None,
     ):
         self.redis_url = redis_url or os.getenv(
             "REDIS_URL",
@@ -172,6 +176,10 @@ class AIMeteringService:
         self.redis_client = redis_client
 
         if not self.redis_client:
+            if redis is None:
+                logger.warning("Redis package not available. Metering disabled.")
+                self.redis_client = None
+                return
             try:
                 self.redis_client = redis.from_url(
                     self.redis_url,

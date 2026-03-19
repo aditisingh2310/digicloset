@@ -1,0 +1,11 @@
+.tryon-widget .processing-spinner {
+  display: block;
+}
+
+.tryon-widget .processing-spinner .spinner-ring {
+  border: 2px solid #ddd;
+  border-top-color: #444;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+}

@@ -1,0 +1,11 @@
+[
+  {
+    "api_key": "adminkey-1",
+    "roles": [
+      "admin"
+    ],
+    "stores": [
+      "store-1"
+    ]
+  }
+]

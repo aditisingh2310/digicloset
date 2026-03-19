@@ -1,33 +1,59 @@
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from app.core.security import make_idempotency_key_for_webhook, verify_webhook_hmac
-from app.services.data_deletion import DataDeletionService
-from app.services.billing_service import InMemoryStore
+from app.services.webhook_queue import (
+    WebhookQueueUnavailable,
+    DuplicateWebhookDelivery,
+    reserve_delivery,
+    release_delivery,
+    enqueue_webhook_delivery,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
-async def _mark_idempotent(request: Request, key: str) -> bool:
-    """Return True if this webhook was already processed (idempotent).
+def _get_redis(request: Request):
+    return getattr(request.app.state, "redis", None)
 
-    Uses Redis SETNX to mark key; expiry 1 day.
-    """
-    r = getattr(request.app.state, "redis", None)
-    if not r:
-        return False
-    # SETNX semantics: set if not exists
-    was_set = r.setnx(key, "1")
-    if was_set:
-        r.expire(key, 86400)
-        return False
-    return True
+
+def _get_request_id(request: Request) -> str | None:
+    return getattr(request.state, "request_id", None)
+
+
+async def _enqueue_delivery(request: Request, topic: str, body: bytes) -> dict:
+    redis_conn = _get_redis(request)
+    delivery_key = make_idempotency_key_for_webhook(request.headers, body)
+
+    try:
+        reserve_delivery(redis_conn, delivery_key)
+    except DuplicateWebhookDelivery:
+        return {"status": "duplicate"}
+    except WebhookQueueUnavailable as exc:
+        raise HTTPException(status_code=503, detail="webhook_queue_unavailable") from exc
+
+    headers = dict(request.headers)
+    shop = headers.get("x-shopify-shop-domain")
+    try:
+        enqueue_webhook_delivery(
+            redis_conn,
+            delivery_key,
+            topic,
+            shop or "",
+            body,
+            headers,
+            _get_request_id(request),
+        )
+    except WebhookQueueUnavailable as exc:
+        release_delivery(redis_conn, delivery_key)
+        raise HTTPException(status_code=503, detail="webhook_queue_unavailable") from exc
+
+    return {"status": "accepted"}
 
 
 @router.post("/app-uninstalled")
@@ -35,73 +61,41 @@ async def app_uninstalled(request: Request, x_shopify_hmac_sha256: str | None = 
     body = await request.body()
     verify_webhook_hmac(body, x_shopify_hmac_sha256)
 
-    key = make_idempotency_key_for_webhook(request.headers, body)
-    already = await _mark_idempotent(request, key)
-    if already:
-        logger.info("Ignored duplicate uninstall webhook %s", key)
-        return {"status": "duplicate"}
-
-    # Perform cleanup: invalidate tokens and remove shop records
+    # Perform cleanup asynchronously with retries
     shop = request.headers.get("x-shopify-shop-domain")
     if not shop:
         raise HTTPException(status_code=400, detail="missing_shop_header")
 
-    store = getattr(request.app.state, "store", None) or InMemoryStore()
-    deletion = DataDeletionService(store)
-    try:
-        audit = await deletion.delete_shop_data(shop)
-        logger.info("Uninstall cleanup completed for %s: %s", shop, audit.json())
-    except Exception:
-        logger.exception("Failed to cleanup shop %s on uninstall webhook", shop)
-        raise HTTPException(status_code=500, detail="cleanup_failed")
-
-    return {"status": "ok"}
+    result = await _enqueue_delivery(request, "app/uninstalled", body)
+    return result
 
 
 @router.post("/gdpr/data_request")
 async def gdpr_data_request(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
     body = await request.body()
     verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    payload = await request.json()
     shop = request.headers.get("x-shopify-shop-domain")
     if not shop:
         raise HTTPException(status_code=400, detail="missing_shop_header")
 
-    # Idempotent handling
-    key = make_idempotency_key_for_webhook(request.headers, body)
-    already = await _mark_idempotent(request, key)
-    if already:
-        return {"status": "duplicate"}
-
-    # Acknowledge and trigger internal data export (placeholder)
-    logger.info("Received GDPR data_request for %s: %s", shop, payload)
-    return {"status": "accepted"}
+    topic = request.headers.get("x-shopify-topic", "customers/data_request")
+    result = await _enqueue_delivery(request, topic, body)
+    if result.get("status") == "accepted":
+        logger.info("Queued GDPR data_request for %s", shop)
+    return result
 
 
 @router.post("/gdpr/redact")
 async def gdpr_redact(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
     body = await request.body()
     verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    payload = await request.json()
     shop = request.headers.get("x-shopify-shop-domain")
     if not shop:
         raise HTTPException(status_code=400, detail="missing_shop_header")
 
-    key = make_idempotency_key_for_webhook(request.headers, body)
-    already = await _mark_idempotent(request, key)
-    if already:
-        return {"status": "duplicate"}
-
-    store = getattr(request.app.state, "store", None) or InMemoryStore()
-    deletion = DataDeletionService(store)
-    try:
-        audit = await deletion.delete_shop_data(shop)
-        logger.info("GDPR redact executed for %s: %s", shop, audit.json())
-    except Exception:
-        logger.exception("Failed GDPR redact for %s", shop)
-        raise HTTPException(status_code=500, detail="redact_failed")
-
-    return {"status": "accepted"}
+    topic = request.headers.get("x-shopify-topic", "customers/redact")
+    result = await _enqueue_delivery(request, topic, body)
+    return result
 
 
 @router.post("/customers/data_request")

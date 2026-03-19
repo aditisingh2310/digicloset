@@ -1,0 +1,7 @@
+.tryon-widget .image-upload {
+  display: block;
+}
+
+.tryon-widget .image-upload .error {
+  color: #b00020;
+}

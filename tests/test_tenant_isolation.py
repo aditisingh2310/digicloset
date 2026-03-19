@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
 from app.core.tenant import tenant_middleware
@@ -11,7 +11,7 @@ def build_test_app():
     app.middleware("http")(tenant_middleware)
 
     @app.get("/whoami")
-    def whoami(request):
+    def whoami(request: Request):
         tenant = request.state.tenant
         return {"shop": tenant.shop_domain}
 

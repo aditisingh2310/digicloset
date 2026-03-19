@@ -9,7 +9,7 @@ Features:
 - Input sanitization helpers
 """
 import asyncio
-from typing import List, Optional, Any, Callable
+from typing import List, Optional, Any, Callable, Dict
 from functools import wraps
 from fastapi import HTTPException, UploadFile
 from pydantic import BaseModel, validator, Field

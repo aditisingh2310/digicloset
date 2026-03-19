@@ -43,7 +43,10 @@ Note: `app/uninstalled` handling is implemented in `shopify-app-core/webhook.js`
 
 ## Endpoints (examples)
 
-- `POST /webhooks/app_uninstalled` — receives uninstall notifications from Shopify.
+- `POST /webhooks/app-uninstalled` — receives uninstall notifications from Shopify.
+- `POST /webhooks/customers/data_request` — GDPR data request notifications.
+- `POST /webhooks/customers/redact` — GDPR customer redact notifications.
+- `POST /webhooks/shop/redact` — GDPR shop redact notifications.
 - `POST /webhooks/products/create` — recommended; handler should enqueue product sync job.
 - `POST /webhooks/products/update` — recommended; handler should upsert product data and re-schedule analysis.
 - `POST /webhooks/orders/create` — optional; used for analytics or usage billing events.

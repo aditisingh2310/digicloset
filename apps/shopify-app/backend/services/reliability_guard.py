@@ -21,8 +21,11 @@ from functools import wraps
 from dataclasses import dataclass, field
 from enum import Enum
 import random
-import redis
 import os
+try:
+    import redis
+except Exception:  # pragma: no cover - optional dependency
+    redis = None
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +155,7 @@ class ReliabilityGuard:
     def __init__(
         self,
         redis_url: str = None,
-        redis_client: redis.Redis = None,
+        redis_client: Any = None,
     ):
         self.redis_url = redis_url or os.getenv(
             "REDIS_URL",
@@ -163,6 +166,10 @@ class ReliabilityGuard:
         self.service_health: Dict[str, ServiceHealth] = {}
 
         if not self.redis_client:
+            if redis is None:
+                logger.warning("Redis package not available. Reliability features limited.")
+                self.redis_client = None
+                return
             try:
                 self.redis_client = redis.from_url(
                     self.redis_url,
