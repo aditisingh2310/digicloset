@@ -18,7 +18,7 @@ def verify_oauth_hmac(query_params: dict) -> None:
     params = dict(query_params)
     received_hmac = params.pop("hmac", None)
     if not received_hmac:
-        raise HTTPException(status_code=400, detail="Missing HMAC")
+        raise HTTPException(status_code=401, detail="Missing HMAC")
 
     # Shopify requires lexicographically sorted query params
     items = sorted((k, v) for k, v in params.items())
@@ -29,21 +29,28 @@ def verify_oauth_hmac(query_params: dict) -> None:
     ).hexdigest()
 
     if not hmac.compare_digest(digest, received_hmac):
-        raise HTTPException(status_code=400, detail="Invalid HMAC")
+        raise HTTPException(status_code=401, detail="Invalid HMAC")
+
+
+def verify_shopify_webhook(request_body: bytes, hmac_header: str | None, secret: str) -> None:
+    """Verify Shopify webhook HMAC (HMAC-SHA256, base64-encoded).
+
+    This is the global reusable helper required by Shopify App Store compliance.
+
+    Raises HTTPException(401) on mismatch.
+    """
+    if not hmac_header:
+        raise HTTPException(status_code=401, detail="Missing webhook HMAC header")
+
+    computed = base64.b64encode(hmac.new(secret.encode(), request_body, hashlib.sha256).digest()).decode()
+
+    if not hmac.compare_digest(computed, hmac_header):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
 
 def verify_webhook_hmac(body: bytes, header_hmac: str) -> None:
-    """Verify Shopify webhook HMAC (HMAC-SHA256, base64-encoded).
-
-    Raises HTTPException(400) on mismatch.
-    """
-    if not header_hmac:
-        raise HTTPException(status_code=400, detail="Missing webhook HMAC header")
-
-    computed = base64.b64encode(hmac.new(settings.shopify_api_secret.encode(), body, hashlib.sha256).digest()).decode()
-
-    if not hmac.compare_digest(computed, header_hmac):
-        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+    """Legacy wrapper. Uses configured Shopify secret."""
+    verify_shopify_webhook(body, header_hmac, settings.shopify_api_secret)
 
 
 def make_idempotency_key_for_webhook(headers: dict, body: bytes) -> str:

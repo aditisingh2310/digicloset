@@ -99,8 +99,30 @@ async def startup_event() -> None:
         missing.append("SHOPIFY_API_KEY")
     if not settings.shopify_api_secret:
         missing.append("SHOPIFY_API_SECRET")
+    if not settings.app_url:
+        missing.append("APP_URL")
     if not os.environ.get("CONTACT_EMAIL"):
         missing.append("CONTACT_EMAIL")
+
+    # Quick DB connection check
+    from app.db.models import SessionLocal
+
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+    except Exception as exc:
+        msg = f"Database connectivity failed: {exc!s}"
+        logging.getLogger(__name__).error(msg, exc_info=True)
+        if enforce:
+            raise RuntimeError(msg)
+        else:
+            logging.getLogger(__name__).warning("%s (set ENFORCE_CONFIG=1 to enforce)", msg)
+    finally:
+        try:
+            db.close()
+        except Exception:
+            pass
+
     if missing:
         msg = f"Missing required env vars: {', '.join(missing)}"
         if enforce:

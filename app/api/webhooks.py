@@ -5,7 +5,11 @@ from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Request
 
-from app.core.security import make_idempotency_key_for_webhook, verify_webhook_hmac
+from app.core.config import settings
+from app.core.security import (
+    make_idempotency_key_for_webhook,
+    verify_shopify_webhook,
+)
 from app.services.webhook_queue import (
     WebhookQueueUnavailable,
     DuplicateWebhookDelivery,
@@ -56,64 +60,86 @@ async def _enqueue_delivery(request: Request, topic: str, body: bytes) -> dict:
     return {"status": "accepted"}
 
 
-@router.post("/app-uninstalled")
-async def app_uninstalled(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
-    body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
+def _safe_webhook_response(error_message: str, request_id: str | None = None) -> dict:
+    # Shopify expects HTTP 200 for processed webhooks; we intentionally swallow internal errors.
+    return {
+        "status": "completed",
+        "message": "processing_skipped",
+        "detail": error_message,
+        "request_id": request_id,
+    }
 
-    # Perform cleanup asynchronously with retries
-    shop = request.headers.get("x-shopify-shop-domain")
+
+async def _process_shopify_webhook(request: Request, topic: str, body: bytes) -> dict:
+    # Verify signature with global helper and place in background queue.
+    hmac_header = request.headers.get("x-shopify-hmac-sha256")
+    verify_shopify_webhook(body, hmac_header, settings.shopify_api_secret)
+
+    shop = request.headers.get("x-shopify-shop-domain", "")
     if not shop:
-        raise HTTPException(status_code=400, detail="missing_shop_header")
+        logger.warning("Shop header missing for webhook topic %s", topic)
 
-    result = await _enqueue_delivery(request, "app/uninstalled", body)
+    logger.info(
+        "Received Shopify webhook topic=%s shop=%s delivery=%s",
+        topic,
+        shop or "unknown",
+        request.headers.get("x-shopify-delivery") or request.headers.get("x-shopify-delivery-id"),
+    )
+
+    result = await _enqueue_delivery(request, topic, body)
     return result
+
+
+async def _webhook_wrapper(func, request: Request, *args, **kwargs):
+    request_id = _get_request_id(request)
+    try:
+        return await func(request, *args, **kwargs)
+    except HTTPException as http_exc:
+        if http_exc.status_code == 401:
+            logger.warning("Unauthorized Shopify webhook request: %s", http_exc.detail)
+            raise
+        logger.exception("Shopify webhook HTTP exception: %s", http_exc)
+        return _safe_webhook_response(str(http_exc.detail), request_id)
+    except Exception as exc:
+        logger.exception("Shopify webhook processing exception", exc_info=exc)
+        return _safe_webhook_response(str(exc), request_id)
+
+
+@router.post("/app-uninstalled")
+async def app_uninstalled(request: Request) -> Any:
+    body = await request.body()
+    return await _webhook_wrapper(_process_shopify_webhook, request, "app/uninstalled", body)
 
 
 @router.post("/gdpr/data_request")
-async def gdpr_data_request(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
+async def gdpr_data_request(request: Request) -> Any:
     body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    shop = request.headers.get("x-shopify-shop-domain")
-    if not shop:
-        raise HTTPException(status_code=400, detail="missing_shop_header")
-
-    topic = request.headers.get("x-shopify-topic", "customers/data_request")
-    result = await _enqueue_delivery(request, topic, body)
-    if result.get("status") == "accepted":
-        logger.info("Queued GDPR data_request for %s", shop)
-    return result
+    shop = request.headers.get("x-shopify-shop-domain", "")
+    logger.info("GDPR data_request webhook from shop %s", shop or "unknown")
+    return await _webhook_wrapper(_process_shopify_webhook, request, request.headers.get("x-shopify-topic", "customers/data_request"), body)
 
 
 @router.post("/gdpr/redact")
-async def gdpr_redact(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
+async def gdpr_redact(request: Request) -> Any:
     body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    shop = request.headers.get("x-shopify-shop-domain")
-    if not shop:
-        raise HTTPException(status_code=400, detail="missing_shop_header")
-
-    topic = request.headers.get("x-shopify-topic", "customers/redact")
-    result = await _enqueue_delivery(request, topic, body)
-    return result
+    shop = request.headers.get("x-shopify-shop-domain", "")
+    logger.info("GDPR redact webhook from shop %s", shop or "unknown")
+    return await _webhook_wrapper(_process_shopify_webhook, request, request.headers.get("x-shopify-topic", "customers/redact"), body)
 
 
 @router.post("/customers/data_request")
-async def customers_data_request(request: Request, x_shopify_hmac_sha256: str | None = Header(None)):
+async def customers_data_request(request: Request):
     body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    return await gdpr_data_request(request, x_shopify_hmac_sha256)
+    return await _webhook_wrapper(_process_shopify_webhook, request, "customers/data_request", body)
 
 
 @router.post("/customers/redact")
-async def customers_redact(request: Request, x_shopify_hmac_sha256: str | None = Header(None)):
+async def customers_redact(request: Request):
     body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    return await gdpr_redact(request, x_shopify_hmac_sha256)
+    return await _webhook_wrapper(_process_shopify_webhook, request, "customers/redact", body)
 
 
 @router.post("/shop/redact")
-async def shop_redact(request: Request, x_shopify_hmac_sha256: str | None = Header(None)):
+async def shop_redact(request: Request):
     body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    return await gdpr_redact(request, x_shopify_hmac_sha256)
+    return await _webhook_wrapper(_process_shopify_webhook, request, "shop/redact", body)

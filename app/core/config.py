@@ -14,6 +14,7 @@ try:
         shopify_api_key: str = Field("", env="SHOPIFY_API_KEY")
         shopify_api_secret: str = Field("", env="SHOPIFY_API_SECRET")
         shopify_api_version: str = Field("2024-01", env="SHOPIFY_API_VERSION")
+        app_url: str = Field("", env="APP_URL")
 
         allowed_origins: List[str] = Field(default_factory=list)
 
@@ -36,6 +37,7 @@ except Exception:
         allowed_origins: List[str] = [o for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o]
         request_timeout: float = float(os.getenv("REQUEST_TIMEOUT", "15"))
         ai_inference_timeout: float = float(os.getenv("AI_INFERENCE_TIMEOUT", "10"))
+        app_url: str = os.getenv("APP_URL", "")
 
 
     settings = Settings()

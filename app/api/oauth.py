@@ -100,12 +100,14 @@ async def shopify_callback(request: Request, response: Response, state: Optional
     db.commit()
 
     # Register webhooks
+    app_base_url = request.headers.get("x-forwarded-proto", request.url.scheme) + "://" + request.headers.get("host", request.url.netloc)
+    callback_base = settings.app_url.rstrip("/") if settings.app_url else app_base_url
     client = ShopifyClient(shop, access_token)
     webhooks = [
-        {"topic": "app/uninstalled", "address": f"{settings.base_url}/api/webhooks/app-uninstalled"},
-        {"topic": "customers/data_request", "address": f"{settings.base_url}/api/webhooks/customers/data_request"},
-        {"topic": "customers/redact", "address": f"{settings.base_url}/api/webhooks/customers/redact"},
-        {"topic": "shop/redact", "address": f"{settings.base_url}/api/webhooks/shop/redact"},
+        {"topic": "app/uninstalled", "address": f"{callback_base}/api/webhooks/app-uninstalled"},
+        {"topic": "customers/data_request", "address": f"{callback_base}/api/webhooks/customers/data_request"},
+        {"topic": "customers/redact", "address": f"{callback_base}/api/webhooks/customers/redact"},
+        {"topic": "shop/redact", "address": f"{callback_base}/api/webhooks/shop/redact"},
     ]
     for webhook in webhooks:
         try:
