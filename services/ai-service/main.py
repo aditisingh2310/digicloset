@@ -135,8 +135,6 @@ async def global_exception_handler(request, exc):
 @app.on_event("startup")
 async def startup_routes():
     """Initialize and mount API routes."""
-    global embedder, vector_index, recommender
-    
     if embedder and vector_index and recommender:
         from ai_service.api.routes import create_router
         

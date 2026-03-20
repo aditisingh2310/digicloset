@@ -1,4 +1,5 @@
 """
+"""
 Try-On Generation Routes - Async Queue Integration
 
 Production endpoints for:
@@ -316,71 +317,3 @@ async def get_tryon(tryon_id: str):
     logger.warning(f"Deprecated endpoint /try-on/{tryon_id} used")
     
     return await get_tryon_status(tryon_id)
-            response = await client.post(
-                f"{os.getenv('AI_INFERENCE_URL')}/generate-tryon",
-                json={
-                    "user_image_url": str(request.user_image_url),
-                    "garment_image_url": str(request.garment_image_url),
-                    "product_id": request.product_id,
-                    "category": request.category
-                },
-                timeout=30
-            )
-        
-        if response.status_code != 200:
-            logger.error(f"AI service error: {response.text}")
-            raise HTTPException(status_code=502, detail="AI service error")
-        
-        result = response.json()
-        
-        return {
-            "id": result.get("prediction_id"),
-            "status": "processing",
-            "created_at": datetime.now().isoformat()
-        }
-    
-    except httpx.TimeoutException:
-        logger.error("AI service timeout")
-        raise HTTPException(status_code=504, detail="AI service timeout")
-    except Exception as e:
-        logger.exception(f"Failed to generate try-on: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal error")
-
-
-@router.get("/try-on/{tryon_id}", response_model=TryOnResponse)
-async def get_tryon_status(tryon_id: str):
-    """Get try-on generation status"""
-    try:
-        # Query database or AI inference service
-        logger.info(f"Checking status for: {tryon_id}")
-        
-        # Placeholder
-        return TryOnResponse(
-            id=tryon_id,
-            status="processing",
-            created_at=datetime.now(),
-            processing_time=None
-        )
-    except Exception as e:
-        logger.exception(f"Failed to get status: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal error")
-
-
-@router.get("/try-on/history", response_model=dict)
-async def get_tryon_history(limit: int = 10, offset: int = 0):
-    """Get try-on generation history"""
-    try:
-        logger.info(f"Fetching history: limit={limit}, offset={offset}")
-        
-        return {
-            "tryons": [],
-            "total": 0,
-            "limit": limit,
-            "offset": offset
-        }
-    except Exception as e:
-        logger.exception(f"Failed to fetch history: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal error")
-
-
-import os

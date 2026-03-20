@@ -24,7 +24,7 @@ export default defineConfig({
         }
       }
     },
-    minify: 'terser',
+    minify: 'esbuild',
     sourcemap: true,
     outDir: 'dist'
   },
