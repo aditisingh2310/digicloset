@@ -16,3 +16,7 @@ api_router.include_router(ai_infer_router)
 api_router.include_router(shopify_router)
 api_router.include_router(billing_router)
 api_router.include_router(onboarding_router)
+try:
+    return await handler()
+except Exception as e:
+    raise HTTPException(status_code=500, detail=str(e))
