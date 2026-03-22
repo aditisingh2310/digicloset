@@ -30,4 +30,6 @@ class ShopifyService:
         client = self._client_for_tenant(tenant)
         resp = client.request("POST", "/admin/api/2023-10/products.json", json=payload, idempotency_key=idempotency_key)
         return resp.json()
-
+async def delete_shop_data(shop: str):
+    # delete everything related to shop
+    await db.delete_shop(shop)
