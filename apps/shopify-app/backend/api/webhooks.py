@@ -122,15 +122,52 @@ async def shop_redact(request: Request, x_shopify_hmac_sha256: str | None = Head
     return await gdpr_redact(request, x_shopify_hmac_sha256)
 @router.post("/webhooks/customers/data_request")
 async def customer_data_request(request: Request):
+    body = await request.body()
+hmac_header = request.headers.get("x-shopify-hmac-sha256")
+
+if not verify_webhook(body, hmac_header, SHOPIFY_SECRET):
+    raise HTTPException(status_code=401, detail="Invalid webhook")
+
+payload = await request.json()
+    return {"status": "ok"}
+
+@router.post("/webhooks/customers/redact")
+async def customer_redact(request: Request):
+    body = await request.body()
+hmac_header = request.headers.get("x-shopify-hmac-sha256")
+
+if not verify_webhook(body, hmac_header, SHOPIFY_SECRET):
+    raise HTTPException(status_code=401, detail="Invalid webhook")
+
+payload = await request.json()
+    return {"status": "ok"}
+
+@router.post("/webhooks/shop/redact")
+async def shop_redact(request: Request):
+    body = await request.body()
+hmac_header = request.headers.get("x-shopify-hmac-sha256")
+
+if not verify_webhook(body, hmac_header, SHOPIFY_SECRET):
+    raise HTTPException(status_code=401, detail="Invalid webhook")
+
+payload = await request.json()
+    return {"status": "ok"}
+@router.post("/webhooks/customers/data_request")
+async def customer_data_request(request: Request):
     payload = await request.json()
     return {"status": "ok"}
 
 @router.post("/webhooks/customers/redact")
 async def customer_redact(request: Request):
     payload = await request.json()
+    # delete customer data if stored
     return {"status": "ok"}
 
 @router.post("/webhooks/shop/redact")
 async def shop_redact(request: Request):
     payload = await request.json()
+    shop = payload.get("shop_domain")
+
+    await delete_shop_data(shop)
+
     return {"status": "ok"}
