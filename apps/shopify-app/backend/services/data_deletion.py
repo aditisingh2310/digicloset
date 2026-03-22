@@ -7,6 +7,7 @@ from datetime import datetime
 from app.models.audit import DeletionAudit
 from app.models.billing import SubscriptionRecord, UsageRecord
 from app.db.models import Shop, Subscription, UsageEvent, CreditBalance
+from services.data_deletion import delete_shop_data
 
 logger = logging.getLogger(__name__)
 
