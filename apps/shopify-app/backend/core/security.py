@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import base64
 import hashlib
 import hmac
@@ -9,7 +10,16 @@ from fastapi import HTTPException
 
 from app.core.config import settings
 
+def verify_webhook(data: bytes, hmac_header: str, secret: str) -> bool:
+    digest = hmac.new(
+        secret.encode("utf-8"),
+        data,
+        hashlib.sha256
+    ).digest()
 
+    computed_hmac = base64.b64encode(digest).decode()
+
+    return hmac.compare_digest(computed_hmac, hmac_header or "")
 def verify_oauth_hmac(query_params: dict) -> None:
     """Verify Shopify OAuth HMAC (query param style).
 
