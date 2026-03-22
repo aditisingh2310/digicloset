@@ -98,3 +98,8 @@ class DataDeletionService:
         )
         logger.info("Deletion audit: %s", audit.json())
         return audit
+async def delete_shop_data(shop: str):
+
+    await db.orders.delete_many({"shop": shop})
+    await db.products.delete_many({"shop": shop})
+    await db.users.delete_many({"shop": shop})
