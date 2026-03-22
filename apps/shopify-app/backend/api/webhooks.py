@@ -171,3 +171,11 @@ async def shop_redact(request: Request):
     await delete_shop_data(shop)
 
     return {"status": "ok"}
+@router.post("/webhooks/app/uninstalled")
+async def app_uninstalled(request: Request):
+    payload = await request.json()
+    shop = payload.get("shop_domain")
+
+    await delete_shop_data(shop)
+
+    return {"status": "cleaned"}
