@@ -9,12 +9,17 @@ from app.services.billing_service import BillingService, InMemoryStore
 from app.models.billing import SubscriptionRecord
 from app.core.plans import PLANS
 
-router = APIRouter(prefix="/billing", tags=["billing"])
+router = APIRouter(prefix="/billing", tags=["billing"]
 
 
 def _store_for_app(request: Request):
     return getattr(request.app.state, "store", InMemoryStore())
 
+from fastapi import HTTPException
+
+def enforce_billing(shop):
+    if not has_active_subscription(shop):
+        raise HTTPException(status_code=403, detail="No active subscription")
 
 @router.post("/create")
 async def create_charge(request: Request):
