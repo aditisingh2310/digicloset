@@ -2,7 +2,11 @@
 // Minimal React + Polaris admin UI shell
 import React from 'react';
 // TODO: import Polaris components as needed
+import EmptyState from "../backend/src/components/ui/EmptyState";
 
+if (!data) {
+  return <EmptyState />;
+}
 export default function App() {
   // TODO: Fetch and display app status, merchantId
   return (
