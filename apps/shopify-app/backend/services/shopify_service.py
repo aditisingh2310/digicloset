@@ -33,3 +33,12 @@ class ShopifyService:
 async def delete_shop_data(shop: str):
     # delete everything related to shop
     await db.delete_shop(shop)
+async def register_gdpr_webhooks(shop, token):
+    topics = [
+        "customers/data_request",
+        "customers/redact",
+        "shop/redact"
+    ]
+
+    for topic in topics:
+        await register_webhook(shop, token, topic)
