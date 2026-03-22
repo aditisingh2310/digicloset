@@ -16,3 +16,19 @@ export default function App() {
     </div>
   );
 }
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Onboarding from "./pages/Onboarding";
+import Pricing from "./pages/Pricing";
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/pricing" element={<Pricing />} />
+      </Routes>
+    </Router>
+  );
+}
