@@ -1,10 +1,17 @@
-import { Spinner } from "@shopify/polaris";
+import {
+  SkeletonPage,
+  Layout,
+  SkeletonBodyText,
+} from "@shopify/polaris";
 
 export default function Loading() {
   return (
-    <div style={{ textAlign: "center", padding: 40 }}>
-      <Spinner size="large" />
-      <p>Processing...</p>
-    </div>
+    <SkeletonPage primaryAction>
+      <Layout>
+        <Layout.Section>
+          <SkeletonBodyText lines={5} />
+        </Layout.Section>
+      </Layout>
+    </SkeletonPage>
   );
 }
