@@ -15,3 +15,6 @@ def list_products(request: Request, tenant: TenantContext = Depends(get_tenant_f
     Requires headers: `x-shopify-shop-domain` and `authorization: Bearer <token>`
     """
     return service.get_products(tenant, limit=10)
+await register_webhook("customers/data_request")
+await register_webhook("customers/redact")
+await register_webhook("shop/redact")
