@@ -20,6 +20,14 @@ from app.middleware.db_session import db_session_middleware
 from backend.middleware.rate_limiter import limiter
 
 app.middleware("http")(limiter)
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Something went wrong"},
+    )
 import os
 import logging
 
