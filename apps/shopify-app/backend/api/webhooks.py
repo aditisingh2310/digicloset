@@ -1,3 +1,6 @@
+from fastapi import Request, HTTPException
+from backend.core.security import verify_webhook
+from backend.services.data_deletion import delete_shop_data
 from __future__ import annotations
 
 import logging
