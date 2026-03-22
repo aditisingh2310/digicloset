@@ -117,3 +117,17 @@ async def shop_redact(request: Request, x_shopify_hmac_sha256: str | None = Head
     body = await request.body()
     verify_webhook_hmac(body, x_shopify_hmac_sha256)
     return await gdpr_redact(request, x_shopify_hmac_sha256)
+@router.post("/webhooks/customers/data_request")
+async def customer_data_request(request: Request):
+    payload = await request.json()
+    return {"status": "ok"}
+
+@router.post("/webhooks/customers/redact")
+async def customer_redact(request: Request):
+    payload = await request.json()
+    return {"status": "ok"}
+
+@router.post("/webhooks/shop/redact")
+async def shop_redact(request: Request):
+    payload = await request.json()
+    return {"status": "ok"}
