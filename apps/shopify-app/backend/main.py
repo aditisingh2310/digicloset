@@ -17,6 +17,9 @@ from app.api.webhooks import router as webhooks_router
 from app.middleware.observability import latency_middleware
 from app.middleware.billing import billing_enforcement_middleware
 from app.middleware.db_session import db_session_middleware
+from backend.middleware.rate_limiter import limiter
+
+app.middleware("http")(limiter)
 import os
 import logging
 
