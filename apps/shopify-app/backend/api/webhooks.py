@@ -1,181 +1,85 @@
-from fastapi import Request, HTTPException
-from backend.core.security import verify_webhook
-from backend.services.data_deletion import delete_shop_data
-from __future__ import annotations
+from fastapi import APIRouter, Request, HTTPException
+import hmac
+import hashlib
+import base64
+import os
+import json
+from typing import Dict, Any
 
-import logging
-from typing import Any
+router = APIRouter()
 
-from fastapi import APIRouter, Header, HTTPException, Request
-
-from app.core.security import make_idempotency_key_for_webhook, verify_webhook_hmac
-from app.services.webhook_queue import (
-    WebhookQueueUnavailable,
-    DuplicateWebhookDelivery,
-    reserve_delivery,
-    release_delivery,
-    enqueue_webhook_delivery,
-)
-
-logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/webhooks", tags=["webhooks"])
+SHOPIFY_WEBHOOK_SECRET = os.getenv("SHOPIFY_WEBHOOK_SECRET")
 
 
-def _get_redis(request: Request):
-    return getattr(request.app.state, "redis", None)
+# ---------------------------------------------------
+# 🔐 HMAC Verification
+# ---------------------------------------------------
+def verify_webhook_hmac(raw_body: bytes, hmac_header: str) -> None:
+    if not hmac_header:
+        raise HTTPException(status_code=401, detail="Missing HMAC header")
+
+    digest = hmac.new(
+        SHOPIFY_WEBHOOK_SECRET.encode("utf-8"),
+        raw_body,
+        hashlib.sha256
+    ).digest()
+
+    computed_hmac = base64.b64encode(digest).decode()
+
+    if not hmac.compare_digest(computed_hmac, hmac_header):
+        raise HTTPException(status_code=401, detail="Invalid HMAC")
 
 
-def _get_request_id(request: Request) -> str | None:
-    return getattr(request.state, "request_id", None)
+# ---------------------------------------------------
+# 🚀 Queue Stub (replace with your Redis queue)
+# ---------------------------------------------------
+async def enqueue_webhook(topic: str, shop: str, payload: Dict[str, Any]):
+    """
+    Replace this with your real queue logic (Redis, Celery, etc.)
+    """
+    print(f"[WEBHOOK QUEUED] {topic} from {shop}")
+    # Example:
+    # await redis_queue.enqueue(topic, shop, payload)
 
 
-async def _enqueue_delivery(request: Request, topic: str, body: bytes) -> dict:
-    redis_conn = _get_redis(request)
-    delivery_key = make_idempotency_key_for_webhook(request.headers, body)
+# ---------------------------------------------------
+# 📦 Shared Handler
+# ---------------------------------------------------
+async def process_webhook(request: Request, topic: str):
+    raw_body = await request.body()
+
+    hmac_header = request.headers.get("x-shopify-hmac-sha256")
+    shop = request.headers.get("x-shopify-shop-domain")
+
+    # Verify webhook authenticity
+    verify_webhook_hmac(raw_body, hmac_header)
 
     try:
-        reserve_delivery(redis_conn, delivery_key)
-    except DuplicateWebhookDelivery:
-        return {"status": "duplicate"}
-    except WebhookQueueUnavailable as exc:
-        raise HTTPException(status_code=503, detail="webhook_queue_unavailable") from exc
+        payload = json.loads(raw_body)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    headers = dict(request.headers)
-    shop = headers.get("x-shopify-shop-domain")
-    try:
-        enqueue_webhook_delivery(
-            redis_conn,
-            delivery_key,
-            topic,
-            shop or "",
-            body,
-            headers,
-            _get_request_id(request),
-        )
-    except WebhookQueueUnavailable as exc:
-        release_delivery(redis_conn, delivery_key)
-        raise HTTPException(status_code=503, detail="webhook_queue_unavailable") from exc
-
-    return {"status": "accepted"}
-
-
-@router.post("/app-uninstalled")
-async def app_uninstalled(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
-    body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-
-    # Perform cleanup asynchronously with retries
-    shop = request.headers.get("x-shopify-shop-domain")
-    if not shop:
-        raise HTTPException(status_code=400, detail="missing_shop_header")
-
-    result = await _enqueue_delivery(request, "app/uninstalled", body)
-    return result
-
-
-@router.post("/gdpr/data_request")
-async def gdpr_data_request(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
-    body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    shop = request.headers.get("x-shopify-shop-domain")
-    if not shop:
-        raise HTTPException(status_code=400, detail="missing_shop_header")
-
-    topic = request.headers.get("x-shopify-topic", "customers/data_request")
-    result = await _enqueue_delivery(request, topic, body)
-    if result.get("status") == "accepted":
-        logger.info("Queued GDPR data_request for %s", shop)
-    return result
-
-
-@router.post("/gdpr/redact")
-async def gdpr_redact(request: Request, x_shopify_hmac_sha256: str | None = Header(None)) -> Any:
-    body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    shop = request.headers.get("x-shopify-shop-domain")
-    if not shop:
-        raise HTTPException(status_code=400, detail="missing_shop_header")
-
-    topic = request.headers.get("x-shopify-topic", "customers/redact")
-    result = await _enqueue_delivery(request, topic, body)
-    return result
-
-
-@router.post("/customers/data_request")
-async def customers_data_request(request: Request, x_shopify_hmac_sha256: str | None = Header(None)):
-    body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    return await gdpr_data_request(request, x_shopify_hmac_sha256)
-
-
-@router.post("/customers/redact")
-async def customers_redact(request: Request, x_shopify_hmac_sha256: str | None = Header(None)):
-    body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    return await gdpr_redact(request, x_shopify_hmac_sha256)
-
-
-@router.post("/shop/redact")
-async def shop_redact(request: Request, x_shopify_hmac_sha256: str | None = Header(None)):
-    body = await request.body()
-    verify_webhook_hmac(body, x_shopify_hmac_sha256)
-    return await gdpr_redact(request, x_shopify_hmac_sha256)
-@router.post("/webhooks/customers/data_request")
-async def customer_data_request(request: Request):
-    body = await request.body()
-hmac_header = request.headers.get("x-shopify-hmac-sha256")
-
-if not verify_webhook(body, hmac_header, SHOPIFY_SECRET):
-    raise HTTPException(status_code=401, detail="Invalid webhook")
-
-payload = await request.json()
-    return {"status": "ok"}
-
-@router.post("/webhooks/customers/redact")
-async def customer_redact(request: Request):
-    body = await request.body()
-hmac_header = request.headers.get("x-shopify-hmac-sha256")
-
-if not verify_webhook(body, hmac_header, SHOPIFY_SECRET):
-    raise HTTPException(status_code=401, detail="Invalid webhook")
-
-payload = await request.json()
-    return {"status": "ok"}
-
-@router.post("/webhooks/shop/redact")
-async def shop_redact(request: Request):
-    body = await request.body()
-hmac_header = request.headers.get("x-shopify-hmac-sha256")
-
-if not verify_webhook(body, hmac_header, SHOPIFY_SECRET):
-    raise HTTPException(status_code=401, detail="Invalid webhook")
-
-payload = await request.json()
-    return {"status": "ok"}
-@router.post("/webhooks/customers/data_request")
-async def customer_data_request(request: Request):
-    payload = await request.json()
-    return {"status": "ok"}
-
-@router.post("/webhooks/customers/redact")
-async def customer_redact(request: Request):
-    payload = await request.json()
-    # delete customer data if stored
-    return {"status": "ok"}
-
-@router.post("/webhooks/shop/redact")
-async def shop_redact(request: Request):
-    payload = await request.json()
-    shop = payload.get("shop_domain")
-
-    await delete_shop_data(shop)
+    # Enqueue for async processing
+    await enqueue_webhook(topic, shop, payload)
 
     return {"status": "ok"}
+# ---------------------------------------------------
+
 @router.post("/webhooks/app/uninstalled")
 async def app_uninstalled(request: Request):
-    payload = await request.json()
-    shop = payload.get("shop_domain")
+    return await process_webhook(request, "app/uninstalled")
 
-    await delete_shop_data(shop)
 
-    return {"status": "cleaned"}
+@router.post("/webhooks/customers/data_request")
+async def customers_data_request(request: Request):
+    return await process_webhook(request, "customers/data_request")
+
+
+@router.post("/webhooks/customers/redact")
+async def customers_redact(request: Request):
+    return await process_webhook(request, "customers/redact")
+
+
+@router.post("/webhooks/shop/redact")
+async def shop_redact(request: Request):
+    return await process_webhook(request, "shop/redact")
