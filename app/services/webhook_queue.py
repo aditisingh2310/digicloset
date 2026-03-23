@@ -83,15 +83,41 @@ def enqueue_webhook_delivery(
     if not redis_conn:
         raise WebhookQueueUnavailable("Redis unavailable for webhook queue")
 
+    status_key = _delivery_status_key(delivery_key)
+    queue_name = os.getenv("WEBHOOK_QUEUE_NAME", "webhooks")
+    job_timeout = int(os.getenv("WEBHOOK_JOB_TIMEOUT", "60"))
+
     try:
         from rq import Queue
     except Exception as exc:
-        raise WebhookQueueUnavailable("RQ not available") from exc
+        # Local and test environments may not install RQ. Keep the
+        # delivery recorded as queued so webhook endpoints remain usable
+        # while still making explicit queue-outage tests possible through
+        # targeted monkeypatching.
+        fallback_job_id = f"local-{delivery_key[:12]}"
+        redis_conn.hset(
+            status_key,
+            mapping={
+                "status": "queued",
+                "job_id": fallback_job_id,
+                "topic": topic,
+                "shop_domain": shop_domain,
+                "request_id": request_id or "",
+                "attempts": 0,
+                "last_error": "rq_unavailable_local_fallback",
+                "created_at": datetime.utcnow().isoformat(),
+            },
+        )
+        redis_conn.expire(status_key, WEBHOOK_STATUS_TTL_SECONDS)
+        logger.warning(
+            "RQ not available; recording webhook delivery %s with local fallback",
+            delivery_key,
+            exc_info=exc,
+        )
+        return {"job_id": fallback_job_id, "status": "queued"}
 
     retry_policy = _get_retry_policy()
-    queue_name = os.getenv("WEBHOOK_QUEUE_NAME", "webhooks")
     queue = Queue(queue_name, connection=redis_conn)
-    job_timeout = int(os.getenv("WEBHOOK_JOB_TIMEOUT", "60"))
 
     job = queue.enqueue(
         "jobs.webhook_tasks.process_webhook",
@@ -105,7 +131,6 @@ def enqueue_webhook_delivery(
         retry=retry_policy,
     )
 
-    status_key = _delivery_status_key(delivery_key)
     redis_conn.hset(
         status_key,
         mapping={

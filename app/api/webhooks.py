@@ -98,6 +98,9 @@ async def _webhook_wrapper(func, request: Request, *args, **kwargs):
         if http_exc.status_code == 401:
             logger.warning("Unauthorized Shopify webhook request: %s", http_exc.detail)
             raise
+        if http_exc.status_code == 503:
+            logger.warning("Transient Shopify webhook failure: %s", http_exc.detail)
+            raise
         logger.exception("Shopify webhook HTTP exception: %s", http_exc)
         return _safe_webhook_response(str(http_exc.detail), request_id)
     except Exception as exc:
