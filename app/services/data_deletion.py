@@ -93,5 +93,6 @@ class DataDeletionService:
             details=audit_details,
             timestamp=datetime.utcnow(),
         )
-        logger.info("Deletion audit: %s", audit.json())
+        audit_payload = audit.model_dump_json() if hasattr(audit, "model_dump_json") else audit.json()
+        logger.info("Deletion audit: %s", audit_payload)
         return audit

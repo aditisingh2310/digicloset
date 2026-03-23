@@ -12,7 +12,7 @@ import asyncio
 from typing import List, Optional, Any, Callable, Dict
 from functools import wraps
 from fastapi import HTTPException, UploadFile
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, Field, field_validator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -319,13 +319,14 @@ class SKUListInput(BaseModel):
     
     skus: List[str] = Field(
         ...,
-        min_items=1,
-        max_items=AbuseProtectionConfig.MAX_SKU_LIST_LENGTH,
+        min_length=1,
+        max_length=AbuseProtectionConfig.MAX_SKU_LIST_LENGTH,
         description="List of product SKUs",
     )
     
-    @validator("skus")
-    def validate_skus(cls, v):
+    @field_validator("skus")
+    @classmethod
+    def validate_skus(cls, v: List[str]) -> List[str]:
         PayloadValidator.validate_sku_list(v)
         return v
 
@@ -345,8 +346,9 @@ class AIAnalysisInput(BaseModel):
         description="Number of images to analyze",
     )
     
-    @validator("text")
-    def validate_text(cls, v):
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, v: Optional[str]) -> Optional[str]:
         if v:
             PayloadValidator.validate_text_length(
                 v,
@@ -362,12 +364,13 @@ class BatchProcessingInput(BaseModel):
     
     items: List[Dict[str, Any]] = Field(
         ...,
-        max_items=AbuseProtectionConfig.MAX_AI_BATCH_SIZE,
+        max_length=AbuseProtectionConfig.MAX_AI_BATCH_SIZE,
         description="Items to process",
     )
     
-    @validator("items")
-    def validate_items(cls, v):
+    @field_validator("items")
+    @classmethod
+    def validate_items(cls, v: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if len(v) > AbuseProtectionConfig.MAX_AI_BATCH_SIZE:
             raise ValueError(
                 f"Batch too large (max: {AbuseProtectionConfig.MAX_AI_BATCH_SIZE})"

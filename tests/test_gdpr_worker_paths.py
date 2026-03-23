@@ -6,13 +6,13 @@ from jobs.webhook_tasks import process_webhook
 
 def _seed_shop(shop_domain: str, access_token: str = "tok-123") -> Shop:
     db = SessionLocal()
-    existing = db.query(Shop).filter(Shop.domain == shop_domain).first()
-    if existing:
-        db.delete(existing)
-        db.commit()
-
-    shop = Shop(domain=shop_domain, access_token=access_token)
-    db.add(shop)
+    shop = db.query(Shop).filter(Shop.domain == shop_domain).first()
+    if shop is None:
+        shop = Shop(domain=shop_domain, access_token=access_token)
+        db.add(shop)
+    else:
+        shop.access_token = access_token
+        shop.uninstalled_at = None
     db.commit()
     db.refresh(shop)
     db.close()

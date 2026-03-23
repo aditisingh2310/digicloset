@@ -6,7 +6,7 @@ from app.models.billing import SubscriptionRecord
 
 
 def run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 def test_trial_active_access():
@@ -67,6 +67,9 @@ def test_increment_atomicity():
     async def worker(n):
         await svc.increment_usage(ai_calls=1)
 
-    run(asyncio.gather(*(worker(i) for i in range(20))))
+    async def run_workers():
+        await asyncio.gather(*(worker(i) for i in range(20)))
+
+    run(run_workers())
     usage = run(store.get_usage(shop))
     assert usage.ai_calls_this_month == 20

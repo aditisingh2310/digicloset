@@ -1,5 +1,5 @@
 def test_invalid_webhook_hmac(client):
-    res = client.post("/api/webhooks/app-uninstalled", data=b"{}", headers={"X-Shopify-Hmac-Sha256": "bad"})
+    res = client.post("/api/webhooks/app-uninstalled", content=b"{}", headers={"X-Shopify-Hmac-Sha256": "bad"})
     assert res.status_code == 401
     body = res.json()
     assert body.get("error") == "Invalid webhook signature"

@@ -20,7 +20,7 @@ def test_uninstall_webhook_cleanup(client, monkeypatch):
 
     res = client.post(
         "/api/webhooks/app-uninstalled",
-        data=body,
+        content=body,
         headers={
             "X-Shopify-Hmac-Sha256": signature,
             "X-Shopify-Shop-Domain": "a.myshopify.com",

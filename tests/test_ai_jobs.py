@@ -1,9 +1,13 @@
 import pytest
 
 fakeredis = pytest.importorskip("fakeredis")
+try:
+    from rq import Queue
+    from rq.job import Job
+except Exception as exc:  # pragma: no cover - platform-specific dependency guard
+    pytest.skip(f"RQ is not importable in this environment: {exc}", allow_module_level=True)
+
 from jobs import redis_conn
-from rq import Queue
-from rq.job import Job
 
 
 def test_enqueue_and_process(monkeypatch):

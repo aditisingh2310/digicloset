@@ -43,7 +43,7 @@ def test_all_webhook_hmac_valid_invalid(client: TestClient, endpoint: str):
     good_sig = shopify_hmac(body)
 
     # valid signature should be accepted
-    r = client.post(endpoint, data=body, headers={
+    r = client.post(endpoint, content=body, headers={
         "X-Shopify-Hmac-Sha256": good_sig,
         "X-Shopify-Shop-Domain": "testshop.myshopify.com",
     })
@@ -51,7 +51,7 @@ def test_all_webhook_hmac_valid_invalid(client: TestClient, endpoint: str):
     assert r.json().get("status") in ("accepted", "duplicate", "completed")
 
     # invalid signature should be rejected
-    r = client.post(endpoint, data=body, headers={
+    r = client.post(endpoint, content=body, headers={
         "X-Shopify-Hmac-Sha256": "invalidsig",
         "X-Shopify-Shop-Domain": "testshop.myshopify.com",
     })
@@ -66,7 +66,7 @@ def test_webhook_handlers_do_not_block(client: TestClient):
     }
 
     start = time.monotonic()
-    response = client.post("/api/webhooks/app-uninstalled", data=body, headers=headers)
+    response = client.post("/api/webhooks/app-uninstalled", content=body, headers=headers)
     elapsed = time.monotonic() - start
 
     assert response.status_code == 200
@@ -94,7 +94,7 @@ def test_uninstall_flow_end_to_end_is_idempotent(client: TestClient, monkeypatch
     }
 
     # Ensure app responds safely to webhook call
-    res1 = client.post("/api/webhooks/app-uninstalled", data=body, headers=headers)
+    res1 = client.post("/api/webhooks/app-uninstalled", content=body, headers=headers)
     assert res1.status_code == 200
     assert res1.json().get("status") in ("completed", "accepted", "duplicate")
 
@@ -113,7 +113,7 @@ def test_uninstall_flow_end_to_end_is_idempotent(client: TestClient, monkeypatch
     assert db_shop.access_token in ("", None)
 
     # Call webhook again, still 200 stable.
-    res2 = client.post("/api/webhooks/app-uninstalled", data=body, headers=headers)
+    res2 = client.post("/api/webhooks/app-uninstalled", content=body, headers=headers)
     assert res2.status_code == 200
     assert res2.json().get("status") in ("completed", "accepted", "duplicate")
 

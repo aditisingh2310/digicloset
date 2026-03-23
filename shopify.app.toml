@@ -1,0 +1,35 @@
+name = "DigiCloset"
+client_id = "REPLACE_WITH_SHOPIFY_CLIENT_ID"
+application_url = "https://your-app-domain.example.com"
+embedded = true
+handle = "digicloset"
+
+[access_scopes]
+scopes = "read_products,write_products,read_customers,write_content"
+
+[auth]
+redirect_urls = [
+  "https://your-app-domain.example.com/api/auth/callback",
+]
+
+[webhooks]
+api_version = "2024-01"
+
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "/api/webhooks/app-uninstalled"
+
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/data_request"]
+uri = "/api/webhooks/customers/data_request"
+
+[[webhooks.subscriptions]]
+compliance_topics = ["customers/redact"]
+uri = "/api/webhooks/customers/redact"
+
+[[webhooks.subscriptions]]
+compliance_topics = ["shop/redact"]
+uri = "/api/webhooks/shop/redact"
+
+[build]
+automatically_update_urls_on_dev = false

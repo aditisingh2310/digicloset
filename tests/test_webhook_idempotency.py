@@ -24,8 +24,8 @@ def test_webhook_idempotent_duplicate(client, monkeypatch):
         "X-Shopify-Delivery": "same-delivery",
     }
 
-    first = client.post("/api/webhooks/app-uninstalled", data=body, headers=headers)
-    second = client.post("/api/webhooks/app-uninstalled", data=body, headers=headers)
+    first = client.post("/api/webhooks/app-uninstalled", content=body, headers=headers)
+    second = client.post("/api/webhooks/app-uninstalled", content=body, headers=headers)
 
     assert first.status_code == 200
     assert second.status_code == 200

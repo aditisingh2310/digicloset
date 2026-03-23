@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from app.api.router import api_router
 from app.ai.services.ai_service import AIService
@@ -20,6 +21,7 @@ from app.middleware.billing import billing_enforcement_middleware
 from app.middleware.rate_limiter import RateLimitMiddleware
 import os
 import logging
+from sqlalchemy import text
 
 
 # Configure structured logging early
@@ -27,7 +29,83 @@ configure_logging()
 from app.api.ai_infer import router as ai_infer_router
 
 
-app = FastAPI(title=settings.app_name)
+async def _startup(app: FastAPI) -> None:
+    """Initialize shared services on startup."""
+    base = AIService(model_name=None)
+    failure_threshold = int(__import__("os").environ.get("AI_CB_FAILURE_THRESHOLD", "3"))
+    reset_timeout = float(__import__("os").environ.get("AI_CB_RESET_TIMEOUT", "30"))
+    timeout = float(__import__("os").environ.get("AI_INFERENCE_TIMEOUT", str(settings.ai_inference_timeout)))
+    app.state.ai_service = AIServiceWithCircuitBreaker(
+        base, failure_threshold=failure_threshold, reset_timeout=reset_timeout, timeout=timeout
+    )
+
+    try:
+        app.state.redis = get_redis_connection(decode_responses=True)
+    except Exception:
+        app.state.redis = None
+
+    async def _cleanup_shop(shop_domain: str) -> None:
+        return None
+
+    app.dependency_overrides = getattr(app, "dependency_overrides", {})
+    app.dependency_overrides["shopify_cleanup"] = _cleanup_shop
+
+    enforce = os.environ.get("ENFORCE_CONFIG", "0") == "1"
+    missing = []
+    if not settings.shopify_api_key:
+        missing.append("SHOPIFY_API_KEY")
+    if not settings.shopify_api_secret:
+        missing.append("SHOPIFY_API_SECRET")
+    if not settings.app_url:
+        missing.append("APP_URL")
+    if not os.environ.get("CONTACT_EMAIL"):
+        missing.append("CONTACT_EMAIL")
+
+    from app.db.models import SessionLocal
+
+    db = None
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+    except Exception as exc:
+        msg = f"Database connectivity failed: {exc!s}"
+        logging.getLogger(__name__).error(msg, exc_info=True)
+        if enforce:
+            raise RuntimeError(msg)
+        logging.getLogger(__name__).warning("%s (set ENFORCE_CONFIG=1 to enforce)", msg)
+    finally:
+        try:
+            if db is not None:
+                db.close()
+        except Exception:
+            pass
+
+    if missing:
+        msg = f"Missing required env vars: {', '.join(missing)}"
+        if enforce:
+            raise RuntimeError(msg)
+        logging.getLogger(__name__).warning("%s (set ENFORCE_CONFIG=1 to enforce)", msg)
+
+
+async def _shutdown(app: FastAPI) -> None:
+    try:
+        r = getattr(app.state, "redis", None)
+        if r is not None:
+            r.close()
+    except Exception:
+        pass
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await _startup(app)
+    try:
+        yield
+    finally:
+        await _shutdown(app)
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 # Expose simple policy and terms routes
 @app.get("/privacy")
@@ -62,73 +140,6 @@ app.middleware("http")(metrics_middleware)
 app.middleware("http")(request_timeout_middleware)
 app.middleware("http")(latency_middleware)
 app.add_middleware(RateLimitMiddleware)
-
-# Billing enforcement should run after tenant middleware (tenant_middleware attaches tenant)
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Initialize shared services on startup."""
-    # Attach a shared AI service instance wrapped with circuit breaker
-    base = AIService(model_name=None)
-    failure_threshold = int(__import__("os").environ.get("AI_CB_FAILURE_THRESHOLD", "3"))
-    reset_timeout = float(__import__("os").environ.get("AI_CB_RESET_TIMEOUT", "30"))
-    timeout = float(__import__("os").environ.get("AI_INFERENCE_TIMEOUT", str(settings.ai_inference_timeout)))
-    app.state.ai_service = AIServiceWithCircuitBreaker(
-        base, failure_threshold=failure_threshold, reset_timeout=reset_timeout, timeout=timeout
-    )
-
-    # Initialize Redis connection for shared services (cache, sessions, queues)
-    try:
-        app.state.redis = get_redis_connection(decode_responses=True)
-    except Exception:
-        app.state.redis = None
-
-    # Provide a simple cleanup hook (override in tests or real implementation)
-    async def _cleanup_shop(shop_domain: str) -> None:
-        # Placeholder to revoke tokens and remove DB records
-        return None
-
-    app.dependency_overrides = getattr(app, "dependency_overrides", {})
-    app.dependency_overrides["shopify_cleanup"] = _cleanup_shop
-
-    # Basic environment validation (enforce only when ENFORCE_CONFIG=1)
-    enforce = os.environ.get("ENFORCE_CONFIG", "0") == "1"
-    missing = []
-    if not settings.shopify_api_key:
-        missing.append("SHOPIFY_API_KEY")
-    if not settings.shopify_api_secret:
-        missing.append("SHOPIFY_API_SECRET")
-    if not settings.app_url:
-        missing.append("APP_URL")
-    if not os.environ.get("CONTACT_EMAIL"):
-        missing.append("CONTACT_EMAIL")
-
-    # Quick DB connection check
-    from app.db.models import SessionLocal
-
-    try:
-        db = SessionLocal()
-        db.execute("SELECT 1")
-    except Exception as exc:
-        msg = f"Database connectivity failed: {exc!s}"
-        logging.getLogger(__name__).error(msg, exc_info=True)
-        if enforce:
-            raise RuntimeError(msg)
-        else:
-            logging.getLogger(__name__).warning("%s (set ENFORCE_CONFIG=1 to enforce)", msg)
-    finally:
-        try:
-            db.close()
-        except Exception:
-            pass
-
-    if missing:
-        msg = f"Missing required env vars: {', '.join(missing)}"
-        if enforce:
-            raise RuntimeError(msg)
-        else:
-            logging.getLogger(__name__).warning("%s (set ENFORCE_CONFIG=1 to enforce)", msg)
 
 
 # Tenant isolation middleware must run for all API requests to guarantee a tenant
@@ -186,14 +197,3 @@ def readiness() -> dict:
     required = ["SHOPIFY_API_KEY", "SHOPIFY_API_SECRET"]
     missing = [name for name in required if not os.environ.get(name)]
     return {"ready": len(missing) == 0, "missing": missing}
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    # Clean up resources
-    try:
-        r = getattr(app.state, "redis", None)
-        if r is not None:
-            r.close()
-    except Exception:
-        pass

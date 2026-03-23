@@ -16,7 +16,7 @@ def post_shopify_webhook(client: TestClient, path: str, body: bytes, shop: str =
     signature = shopify_hmac(body)
     return client.post(
         path,
-        data=body,
+        content=body,
         headers={
             "X-Shopify-Hmac-Sha256": signature,
             "X-Shopify-Shop-Domain": shop,

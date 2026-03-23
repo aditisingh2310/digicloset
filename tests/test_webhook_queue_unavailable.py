@@ -19,7 +19,7 @@ def test_webhook_queue_unavailable_returns_503(client, monkeypatch):
 
     res = client.post(
         "/api/webhooks/app-uninstalled",
-        data=body,
+        content=body,
         headers={
             "X-Shopify-Hmac-Sha256": signature,
             "X-Shopify-Shop-Domain": "down.myshopify.com",

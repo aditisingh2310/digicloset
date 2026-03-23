@@ -14,7 +14,7 @@ async def billing_enforcement_middleware(request: Request, call_next: Callable):
     """
     path = request.url.path
     # allow billing endpoints and webhooks to pass through
-    allow_prefixes = ("/api/billing", "/api/webhooks", "/health", "/api/auth")
+    allow_prefixes = ("/api/billing", "/api/webhooks", "/health", "/api/auth", "/privacy", "/terms")
     if any(path.startswith(p) for p in allow_prefixes):
         return await call_next(request)
 
