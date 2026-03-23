@@ -1,20 +1,32 @@
 import {
-  Page,
+  Banner,
+  BlockStack,
   Button,
   Card,
-  Text,
   InlineStack,
-  BlockStack,
+  Page,
+  Text,
   Spinner,
   Badge,
 } from "@shopify/polaris";
 import { useFetcher } from "@remix-run/react";
 
+type Outfit = {
+  id: string;
+  title: string;
+  description: string;
+  approved?: boolean;
+};
+
+type AnalyzerResponse = {
+  outfits?: Outfit[];
+  error?: string;
+};
+
 export default function Index() {
   const fetcher = useFetcher();
-
   const isLoading = fetcher.state !== "idle";
-  const data = fetcher.data as any;
+  const data = (fetcher.data ?? null) as AnalyzerResponse | null;
 
   const runAI = () => {
     fetcher.submit(
@@ -25,17 +37,6 @@ export default function Index() {
       { method: "post", action: "/api/v1/analyze" }
     );
   };
-<Card>
-  <Text as="h2" variant="headingSm">
-    How DigiCloset AI Works
-  </Text>
-  <Text as="p" tone="subdued">
-    DigiCloset analyzes your product images and metadata to generate
-    visually cohesive outfit recommendations. The AI improves over time
-    based on your approvals and rejections.
-  </Text>
-</Card>
-
   const sendFeedback = (outfitId: string, approved: boolean) => {
     fetcher.submit(
       {
@@ -47,14 +48,36 @@ export default function Index() {
   };
 
   return (
-    <Page title="AI Analyzer">
+    <Page
+      title="AI Analyzer"
+      subtitle="Run a demo analysis, review generated outfits, and keep the approval loop tight before publishing recommendations."
+    >
       <BlockStack gap="500">
-        {/* ACTION */}
-        <Button onClick={runAI} variant="primary" loading={isLoading}>
-          Analyze Demo Product
-        </Button>
+        <Card>
+          <BlockStack gap="300">
+            <Text as="h2" variant="headingMd">
+              How DigiCloset AI works
+            </Text>
+            <Text as="p" tone="subdued">
+              DigiCloset analyzes your product imagery and metadata to create outfit suggestions that feel cohesive, on-brand, and quick to review.
+            </Text>
+            <InlineStack gap="300" align="space-between" blockAlign="center">
+              <Text as="p" tone="subdued">
+                Best results come from clean product photos and a short daily review loop on the first generated looks.
+              </Text>
+              <Button onClick={runAI} variant="primary" loading={isLoading}>
+                Analyze Demo Product
+              </Button>
+            </InlineStack>
+          </BlockStack>
+        </Card>
 
-        {/* LOADING */}
+        {data?.error && (
+          <Banner status="critical" title="Analysis failed">
+            <p>{data.error}</p>
+          </Banner>
+        )}
+
         {isLoading && (
           <Card>
             <InlineStack align="center" gap="200">
@@ -64,22 +87,22 @@ export default function Index() {
           </Card>
         )}
 
-        {/* EMPTY STATE */}
-        {!isLoading && !data && (
+        {!isLoading && !data?.outfits?.length && !data?.error && (
           <Card>
-            <Text as="h2" variant="headingSm">
-              No AI results yet
-            </Text>
-            <Text as="p" tone="subdued">
-              Run the analyzer to generate AI-powered outfit suggestions.
-            </Text>
+            <BlockStack gap="200">
+              <Text as="h2" variant="headingSm">
+                No AI results yet
+              </Text>
+              <Text as="p" tone="subdued">
+                Run the analyzer to generate AI-powered outfit suggestions for the sample product.
+              </Text>
+            </BlockStack>
           </Card>
         )}
 
-        {/* RESULTS */}
-        {data?.outfits && (
+        {data?.outfits?.length ? (
           <BlockStack gap="400">
-            {data.outfits.map((outfit: any) => (
+            {data.outfits.map((outfit) => (
               <Card key={outfit.id}>
                 <BlockStack gap="200">
                   <InlineStack align="space-between">
@@ -113,13 +136,8 @@ export default function Index() {
               </Card>
             ))}
           </BlockStack>
-        )}
+        ) : null}
       </BlockStack>
     </Page>
   );
 }
-{fetcher.data?.error && (
-  <Card tone="critical">
-    <Text>{fetcher.data.error}</Text>
-  </Card>
-)}

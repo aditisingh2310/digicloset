@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import './ImageUpload.css';
 
 interface ImageUploadProps {
@@ -7,7 +7,7 @@ interface ImageUploadProps {
 
 /**
  * ImageUpload Component
- * 
+ *
  * Handles:
  * - File input validation
  * - Image preview
@@ -17,12 +17,16 @@ interface ImageUploadProps {
 export default function ImageUpload({ onUpload }: ImageUploadProps) {
   const [userImage, setUserImage] = useState<string | null>(null);
   const [garmentImage, setGarmentImage] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
+  const [activeDropzone, setActiveDropzone] = useState<'user' | 'garment' | null>(
+    null
+  );
   const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const userInputRef = useRef<HTMLInputElement | null>(null);
+  const garmentInputRef = useRef<HTMLInputElement | null>(null);
 
   const validateImage = (file: File): string | null => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
 
     if (!validTypes.includes(file.type)) {
       return 'Invalid file type. Use JPEG, PNG, or WebP';
@@ -37,11 +41,11 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
 
   const handleFile = (file: File, isUser: boolean): void => {
     const error = validateImage(file);
-    
+
     if (error) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [isUser ? 'user' : 'garment']: error
+        [isUser ? 'user' : 'garment']: error,
       }));
       return;
     }
@@ -49,29 +53,45 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string | null;
-      if (result) {
-        if (isUser) {
-          setUserImage(result);
-          setErrors(prev => ({ ...prev, user: null }));
-        } else {
-          setGarmentImage(result);
-          setErrors(prev => ({ ...prev, garment: null }));
-        }
+
+      if (!result) {
+        return;
       }
+
+      if (isUser) {
+        setUserImage(result);
+        setErrors((prev) => ({ ...prev, user: null, submit: null }));
+        return;
+      }
+
+      setGarmentImage(result);
+      setErrors((prev) => ({ ...prev, garment: null, submit: null }));
     };
     reader.readAsDataURL(file);
   };
 
-  const handleDrag = (e: React.DragEvent<HTMLDivElement>): void => {
+  const handleDrag = (
+    e: React.DragEvent<HTMLDivElement>,
+    zone: 'user' | 'garment'
+  ): void => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(e.type !== 'dragleave');
+
+    if (e.type === 'dragleave') {
+      setActiveDropzone((current) => (current === zone ? null : current));
+      return;
+    }
+
+    setActiveDropzone(zone);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, isUser: boolean): void => {
+  const handleDrop = (
+    e: React.DragEvent<HTMLDivElement>,
+    isUser: boolean
+  ): void => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(false);
+    setActiveDropzone(null);
 
     const file = e.dataTransfer.files[0];
     if (file) {
@@ -79,20 +99,20 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
 
     if (!userImage || !garmentImage) {
       setErrors({
-        user: !userImage ? 'Upload user image' : null,
-        garment: !garmentImage ? 'Upload garment image' : null
+        user: !userImage ? 'Upload a customer photo' : null,
+        garment: !garmentImage ? 'Upload a garment image' : null,
       });
       return;
     }
 
     try {
-      // Upload images to CDN or backend (simplified)
-      // In production, these would be uploaded to S3/CDN first
       await onUpload(userImage, garmentImage);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -100,110 +120,165 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
     }
   };
 
+  const openPicker = (zone: 'user' | 'garment') => {
+    if (zone === 'user') {
+      userInputRef.current?.click();
+      return;
+    }
+
+    garmentInputRef.current?.click();
+  };
+
+  const clearImage = (zone: 'user' | 'garment') => {
+    if (zone === 'user') {
+      setUserImage(null);
+    } else {
+      setGarmentImage(null);
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [zone]: null,
+      submit: null,
+    }));
+  };
+
+  const renderUploadPanel = ({
+    zone,
+    title,
+    helper,
+    image,
+    error,
+  }: {
+    zone: 'user' | 'garment';
+    title: string;
+    helper: string;
+    image: string | null;
+    error: string | null | undefined;
+  }) => (
+    <div className="upload-section">
+      <div className="upload-section__header">
+        <h3>{title}</h3>
+        <p>{helper}</p>
+      </div>
+
+      <div
+        className={`upload-area ${activeDropzone === zone ? 'active' : ''}`}
+        onDragEnter={(e) => handleDrag(e, zone)}
+        onDragLeave={(e) => handleDrag(e, zone)}
+        onDragOver={(e) => handleDrag(e, zone)}
+        onDrop={(e) => handleDrop(e, zone === 'user')}
+        onClick={() => openPicker(zone)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openPicker(zone);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        {image ? (
+          <div className="preview">
+            <img
+              src={image}
+              alt={zone === 'user' ? 'Customer upload' : 'Garment upload'}
+            />
+            <div className="preview-actions">
+              <button
+                type="button"
+                className="file-action-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openPicker(zone);
+                }}
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                className="remove-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearImage(zone);
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="upload-placeholder">
+            <p>Drag and drop an image here</p>
+            <small>or click to browse. JPEG, PNG, WebP. Up to 10 MB.</small>
+          </div>
+        )}
+
+        <input
+          ref={zone === 'user' ? userInputRef : garmentInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            e.target.files && handleFile(e.target.files[0], zone === 'user')
+          }
+          style={{ display: 'none' }}
+        />
+      </div>
+
+      {error ? <p className="error">{error}</p> : null}
+    </div>
+  );
+
   return (
     <div className="image-upload">
-      <h2>Virtual Try-On</h2>
-      
+      <div className="image-upload__header">
+        <p className="image-upload__eyebrow">Step 1</p>
+        <h2>Create a try-on preview</h2>
+        <p>
+          Add one customer photo and one product image. The cleaner the source
+          images are, the better the final drape and lighting will look.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        {/* User Image Upload */}
-        <div className="upload-section">
-          <label>Your Photo</label>
-          
-          <div
-            className={`upload-area ${dragActive ? 'active' : ''}`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={(e) => handleDrop(e, true)}
-          >
-            {userImage ? (
-              <div className="preview">
-                <img src={userImage} alt="User" />
-                <button
-                  type="button"
-                  onClick={() => setUserImage(null)}
-                  className="remove-btn"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <div className="upload-placeholder">
-                <p>📸 Drag image here or click</p>
-                <small>JPEG, PNG, or WebP • Max 10MB</small>
-              </div>
-            )}
+        <div className="image-upload__grid">
+          {renderUploadPanel({
+            zone: 'user',
+            title: 'Customer photo',
+            helper: 'Use a front-facing image with even lighting and visible shoulders.',
+            image: userImage,
+            error: errors.user,
+          })}
 
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => e.target.files && handleFile(e.target.files[0], true)}
-              style={{ display: 'none' }}
-              id="user-image-input"
-            />
-          </div>
-
-          <label htmlFor="user-image-input" className="file-input-label">
-            {userImage ? 'Change photo' : 'Select photo'}
-          </label>
-
-          {errors.user && <p className="error">{errors.user}</p>}
+          {renderUploadPanel({
+            zone: 'garment',
+            title: 'Garment image',
+            helper: 'Use the clean product shot shoppers see on the product page.',
+            image: garmentImage,
+            error: errors.garment,
+          })}
         </div>
 
-        {/* Garment Image Upload */}
-        <div className="upload-section">
-          <label>Garment Product</label>
-
-          <div
-            className={`upload-area ${dragActive ? 'active' : ''}`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={(e) => handleDrop(e, false)}
-          >
-            {garmentImage ? (
-              <div className="preview">
-                <img src={garmentImage} alt="Garment" />
-                <button
-                  type="button"
-                  onClick={() => setGarmentImage(null)}
-                  className="remove-btn"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <div className="upload-placeholder">
-                <p>👕 Drag image here or click</p>
-                <small>JPEG, PNG, or WebP • Max 10MB</small>
-              </div>
-            )}
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => e.target.files && handleFile(e.target.files[0], false)}
-              style={{ display: 'none' }}
-              id="garment-image-input"
-            />
+        <div className="image-upload__footer">
+          <div className="image-upload__note">
+            <strong>Ready for generation</strong>
+            <p>
+              {userImage && garmentImage
+                ? 'Both images are uploaded. Generate the preview when you are ready.'
+                : 'Upload both images to unlock the try-on preview.'}
+            </p>
           </div>
 
-          <label htmlFor="garment-image-input" className="file-input-label">
-            {garmentImage ? 'Change product' : 'Select product'}
-          </label>
-
-          {errors.garment && <p className="error">{errors.garment}</p>}
+          <button
+            type="submit"
+            disabled={!userImage || !garmentImage}
+            className="submit-btn"
+          >
+            Generate Try-On Preview
+          </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={!userImage || !garmentImage}
-          className="submit-btn"
-        >
-          Generate Try-On
-        </button>
-
-        {errors.submit && <p className="error">{errors.submit}</p>}
+        {errors.submit ? <p className="error">{errors.submit}</p> : null}
       </form>
     </div>
   );

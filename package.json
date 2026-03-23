@@ -17,8 +17,8 @@
         "test:coverage": "vitest --coverage"
     },
     "dependencies": {
-        "@shopify/app-bridge": "^4.0.0",
-        "@shopify/app-bridge-react": "^4.0.0",
+        "@shopify/app-bridge": "^3.7.11",
+        "@shopify/app-bridge-react": "^4.2.10",
         "@shopify/polaris": "^13.0.0",
         "@shopify/polaris-icons": "^8.0.0",
         "react": "^18.3.1",
@@ -29,7 +29,6 @@
         "recharts": "^2.8.0"
     },
     "devDependencies": {
-        "@shopify/polaris-scss": "^13.0.0",
         "@eslint/js": "^9.9.1",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/react": "^16.0.0",

@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import path from 'node:path';
 
-export default defineConfig({
-  plugins: [react()],
+export default {
+  esbuild: {
+    jsx: 'automatic',
+  },
   test: {
     environment: 'jsdom',
   },
@@ -12,29 +12,30 @@ export default defineConfig({
       entry: path.resolve(__dirname, 'src/index.tsx'),
       name: 'ShopifyTryOnWidget',
       formats: ['umd', 'es'],
-      fileName: (format) =>
-        format === 'es' ? 'shopify-tryon-widget.es.js' : 'shopify-tryon-widget.js'
+      fileName: (format: string) =>
+        format === 'es' ? 'shopify-tryon-widget.es.js' : 'shopify-tryon-widget.js',
     },
     rollupOptions: {
       external: [],
       output: {
         globals: {
           react: 'React',
-          'react-dom': 'ReactDOM'
-        }
-      }
+          'react-dom': 'ReactDOM',
+        },
+      },
     },
+    cssMinify: false,
     minify: 'esbuild',
     sourcemap: true,
-    outDir: 'dist'
+    outDir: 'dist',
   },
   server: {
     port: 3000,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
-        changeOrigin: true
-      }
-    }
-  }
-});
+        changeOrigin: true,
+      },
+    },
+  },
+};

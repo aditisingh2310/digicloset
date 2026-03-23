@@ -8,5 +8,5 @@ export default function useFirstInstall(hasProducts) {
     if (!hasProducts) {
       navigate("/onboarding");
     }
-  }, [hasProducts]);
+  }, [hasProducts, navigate]);
 }

@@ -1,11 +1,109 @@
 .tryon-widget .processing-spinner {
-  display: block;
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid rgba(14, 116, 144, 0.12);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top, rgba(186, 230, 253, 0.32), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 249, 255, 0.92));
+  text-align: center;
+}
+
+.tryon-widget .processing-spinner__eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray-600);
+}
+
+.tryon-widget .processing-spinner h3,
+.tryon-widget .processing-spinner p {
+  margin: 0;
+}
+
+.tryon-widget .processing-spinner .spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tryon-widget .processing-spinner .spinner-ring {
-  border: 2px solid #ddd;
-  border-top-color: #444;
+  border: 4px solid rgba(14, 116, 144, 0.12);
+  border-top-color: #0284c7;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 64px;
+  height: 64px;
+  animation: tryon-spin 1s linear infinite;
+}
+
+.tryon-widget .processing-spinner .progress-indicator {
+  display: grid;
+  gap: 10px;
+}
+
+.tryon-widget .processing-spinner .progress-bar {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(14, 116, 144, 0.12);
+}
+
+.tryon-widget .processing-spinner .progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0284c7, #0f766e);
+  transition: width 0.4s ease;
+}
+
+.tryon-widget .processing-spinner__steps {
+  display: grid;
+  gap: 10px;
+}
+
+.tryon-widget .processing-spinner__step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--gray-600);
+}
+
+.tryon-widget .processing-spinner__step span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.tryon-widget .processing-spinner__step p {
+  text-align: left;
+}
+
+.tryon-widget .processing-spinner__step--active {
+  color: #0f172a;
+  border-color: rgba(14, 116, 144, 0.18);
+  background: rgba(240, 249, 255, 0.96);
+}
+
+.tryon-widget .processing-spinner__step--active span {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0284c7, #0f766e);
+}
+
+@keyframes tryon-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

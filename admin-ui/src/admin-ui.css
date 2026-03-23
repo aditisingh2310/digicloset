@@ -1,0 +1,151 @@
+.dc-admin-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(57, 177, 255, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(15, 121, 72, 0.15), transparent 24%),
+    linear-gradient(180deg, #f4f8ff 0%, #eef5f0 52%, #f8fafc 100%);
+}
+
+.dc-admin-frame {
+  min-height: 100vh;
+  padding-bottom: 32px;
+}
+
+.dc-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dc-hero-card {
+  position: relative;
+  overflow: hidden;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 28%),
+    linear-gradient(135deg, #0f172a 0%, #102a43 50%, #0b6d4a 100%);
+}
+
+.dc-hero-card::after {
+  position: absolute;
+  inset: auto -80px -110px auto;
+  width: 240px;
+  height: 240px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  content: "";
+}
+
+.dc-hero-card .Polaris-Text,
+.dc-hero-card p {
+  color: inherit;
+}
+
+.dc-kicker {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.dc-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dc-pill {
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.86rem;
+}
+
+.dc-stat-grid,
+.dc-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.dc-stat-card {
+  min-height: 100%;
+}
+
+.dc-stat-card .dc-stat-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dc-surface-card,
+.dc-plan-card {
+  min-height: 100%;
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
+}
+
+.dc-plan-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.dc-plan-card--featured {
+  border-color: rgba(11, 109, 74, 0.28);
+  box-shadow: 0 22px 44px rgba(11, 109, 74, 0.16);
+  transform: translateY(-4px);
+}
+
+.dc-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.dc-price strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.dc-checklist,
+.dc-bullet-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dc-checklist li,
+.dc-bullet-list li {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.86);
+}
+
+.dc-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dc-support-card {
+  border-left: 4px solid #0b6d4a;
+}
+
+.dc-muted {
+  color: #475569;
+}
+
+@media (max-width: 768px) {
+  .dc-admin-frame {
+    padding-bottom: 20px;
+  }
+
+  .dc-plan-card--featured {
+    transform: none;
+  }
+}
