@@ -5,8 +5,8 @@ Ensures all database and cache access is scoped to the authenticated tenant.
 Raises if shop context is missing, preventing accidental cross-tenant reads.
 """
 from functools import wraps
-from typing import Optional, Callable, Any
-from fastapi import HTTPException, Depends
+from typing import Optional, Callable
+from fastapi import HTTPException
 from starlette.requests import Request
 import logging
 

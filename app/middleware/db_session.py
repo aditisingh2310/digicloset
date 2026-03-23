@@ -1,5 +1,4 @@
 from fastapi import Request
-from typing import Callable
 from app.db.models import SessionLocal
 
 async def db_session_middleware(request: Request, call_next):
@@ -9,7 +8,7 @@ async def db_session_middleware(request: Request, call_next):
         response = await call_next(request)
         request.state.db.commit()
         return response
-    except Exception as e:
+    except Exception:
         request.state.db.rollback()
         raise
     finally:

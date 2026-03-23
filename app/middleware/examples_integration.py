@@ -24,12 +24,10 @@ from app.middleware import (
     RateLimitConfig,
     TenantMiddleware,
     get_shop_id,
-    require_tenant,
 )
 from app.utils import (
     setup_pii_safe_logging,
     safe_log,
-    RequestLogger,
     AuditLogger,
     ErrorResponse,
     RequestIDMiddleware,
@@ -40,8 +38,6 @@ from app.utils import (
     PayloadValidator,
     TimeoutGuard,
     AbuseProtectionConfig,
-    SKUListInput,
-    AIAnalysisInput,
 )
 
 

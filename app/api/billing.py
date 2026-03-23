@@ -57,8 +57,6 @@ async def billing_webhook(request: Request, db: Session = Depends(get_db)):
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
 
-    svc = BillingService(shop_domain, shop.access_token, db)
-
     if topic == "app/subscriptions/update":
         # Handle subscription updates
         pass

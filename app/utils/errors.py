@@ -14,8 +14,7 @@ Never exposes internal stack traces in production.
 """
 import uuid
 import logging
-from typing import Optional, Dict, Any
-from datetime import datetime
+from typing import Dict, Any
 from enum import Enum
 from fastapi import HTTPException
 from starlette.requests import Request

@@ -2,12 +2,12 @@
 
 Run with `python run_optimizations.py` from repository root.
 """
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, Any
 from .manager import OptimizationManager
 from .storage import JSONStore
-from .rbac import require_role, get_user_from_api_key
+from .rbac import require_role
 import json
 import os
 

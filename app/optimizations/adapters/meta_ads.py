@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 
 
 def suggest_creatives(product_id: str) -> Dict:

@@ -1,31 +1,51 @@
-# Data deletion and merchant privacy
+# Data Deletion and GDPR Handling
 
-This document explains what merchant data the DigiCloset app stores, what is removed on uninstall, timing for deletions, and assurances about post-uninstall persistence.
+This document explains what DigiCloset stores, what happens on uninstall and redact webhooks, and how Shopify GDPR requests are handled in the active backend.
 
-## What merchant data is stored
+## Merchant Data Stored by the Active Backend
 
-Examples of merchant-scoped data stored by the app (present in repository):
+Examples of merchant-scoped data present in the active backend include:
 
-- OAuth/shop session tokens needed to call Shopify APIs (stored server-side during install).
-- Lightweight feedback logs (example: `feedback_log.jsonl` created by `app/services/feedback_service.py`).
-- Billing records (example scaffold: `backend/billing_store.json`).
-- Optional product/variant mapping and metadata if the merchant enables the upgrade pack (`digicloset-upgrade-pack-complete/backend/app/models.py`).
+- OAuth tokens and server-side sessions required to call Shopify APIs.
+- Billing and usage records.
+- Merchant support and feedback records.
+- Product and try-on related operational data needed to provide the service.
+- Webhook delivery metadata and security/observability logs.
 
-The app does not store raw payment information or customer credit card data — those remain with Shopify.
+The active backend is designed primarily around merchant and store data. It does not maintain a dedicated customer profile store in its main application database.
 
-## What is deleted on app uninstall
+## Uninstall and Shop Redact
 
-- On receipt of the `app/uninstalled` webhook the app will:
-  - Invalidate and delete any stored access tokens or sessions for the merchant.
-  - Remove merchant-scoped records such as product mappings, billing records, and feedback logs associated with that merchant.
-  - Optionally remove any Shopify metafields or app-specific annotations the app had written (if configured to do so).
+On `app/uninstalled` and `shop/redact`, DigiCloset is designed to:
 
-## Deletion timing
+- revoke stored access tokens;
+- revoke server-side sessions;
+- mark the shop as uninstalled;
+- remove merchant-scoped subscriptions, usage events, and credit balances;
+- record a deletion audit event.
 
-- Deletion is triggered immediately upon processing the `app/uninstalled` webhook. For safety and scale the app may enqueue a background cleanup job; the webhook handler will acknowledge receipt immediately while cleanup proceeds.
+Cleanup is triggered immediately when the webhook worker processes the event. The HTTP webhook endpoint may acknowledge receipt before cleanup finishes so the request path stays fast and retry-safe.
 
-## Confirmation of no persistent data post-uninstall
+## Customer Data Request
 
-- The app is designed to remove merchant-specific data when the uninstall webhook is received. After uninstall cleanup completes the app will not retain merchant OAuth tokens, product mappings, or billing records tied to the uninstalled store.
+On `customers/data_request`, DigiCloset records the request for compliance review and response handling. The active backend records the request payload and customer identifiers for audit purposes.
 
-If you require an export of merchant data before deletion (for merchant compliance or records), implement an admin UI flow that allows merchants to request their data prior to uninstall; the repository includes scaffolding points where this can be added.
+Because the active backend does not maintain a dedicated customer profile store, the current workflow is:
+
+- accept and authenticate the webhook;
+- record the request for review;
+- confirm what customer-related data is actually held before completing a final response through the merchant's compliance process.
+
+## Customer Redact
+
+On `customers/redact`, DigiCloset records the redact request and completes a no-shop-delete audit path. A customer redact request must not behave like `app/uninstalled`.
+
+In the active backend, the customer-redact worker:
+
+- records the request details for audit;
+- does not revoke the entire shop installation;
+- does not wipe merchant-scoped shop data as part of customer-level redaction.
+
+## Post-Uninstall Persistence
+
+After uninstall or shop-redact cleanup completes, DigiCloset is designed not to retain merchant access tokens, active sessions, or merchant-scoped operational records tied to the removed shop, except where retention is required for legal, security, or accounting reasons.

@@ -8,6 +8,7 @@ from typing import Dict, Any
 
 from jobs.redis_conn import get_redis_connection
 from app.services.data_deletion import DataDeletionService
+from app.services.gdpr_requests import record_customer_redaction, record_data_request
 from app.db.models import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ def process_webhook(
     )
 
     try:
-        if topic in {"app/uninstalled", "customers/redact", "shop/redact"}:
+        if topic == "app/uninstalled":
             audit = _run_uninstall_cleanup(shop_domain, redis_conn)
             _update_status(
                 redis_conn,
@@ -106,15 +107,35 @@ def process_webhook(
             )
             return {"status": "completed", "audit": audit}
 
-        if topic in {"customers/data_request"}:
-            logger.info("Received GDPR data_request for %s", shop_domain)
+        if topic == "shop/redact":
+            audit = _run_uninstall_cleanup(shop_domain, redis_conn)
             _update_status(
                 redis_conn,
                 delivery_key,
                 status="completed",
                 completed_at=datetime.utcnow().isoformat(),
             )
-            return {"status": "completed"}
+            return {"status": "completed", "audit": audit}
+
+        if topic == "customers/redact":
+            audit = record_customer_redaction(redis_conn, shop_domain, body, request_id)
+            _update_status(
+                redis_conn,
+                delivery_key,
+                status="completed",
+                completed_at=datetime.utcnow().isoformat(),
+            )
+            return {"status": "completed", "audit": audit}
+
+        if topic == "customers/data_request":
+            audit = record_data_request(redis_conn, shop_domain, body, request_id)
+            _update_status(
+                redis_conn,
+                delivery_key,
+                status="completed",
+                completed_at=datetime.utcnow().isoformat(),
+            )
+            return {"status": "completed", "audit": audit}
 
         # Unknown or unhandled webhook topic
         logger.warning("Unhandled webhook topic: %s", topic)

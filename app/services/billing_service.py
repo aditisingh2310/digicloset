@@ -146,8 +146,6 @@ class BillingService:
             raise Exception(f"Shopify error: {data['userErrors']}")
 
         confirmation_url = data.get("confirmationUrl")
-        subscription_gid = data.get("appSubscription", {}).get("id")
-
         # Save pending subscription
         sub = Subscription(
             shop_id=shop.id,

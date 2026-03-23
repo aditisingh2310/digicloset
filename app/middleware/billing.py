@@ -3,8 +3,6 @@ from __future__ import annotations
 from fastapi import Request, HTTPException
 from typing import Callable
 
-from app.core.config import settings
-from app.core.plans import PLANS
 from app.services.billing_service import BillingService
 
 

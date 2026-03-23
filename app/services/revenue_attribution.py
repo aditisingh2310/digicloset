@@ -11,11 +11,10 @@ Features:
 - Async-compatible with Redis backend
 - Graceful degradation on Redis failure
 """
-import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
 import os

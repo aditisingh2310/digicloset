@@ -16,10 +16,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
-import json
 
 from app.services.ai_metering import ai_metering
-from app.services.observability import observability
 from app.services.revenue_attribution import revenue_attribution
 
 logger = logging.getLogger(__name__)

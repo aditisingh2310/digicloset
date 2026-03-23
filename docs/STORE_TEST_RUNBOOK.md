@@ -32,6 +32,10 @@ If your store uses different themes, validate those instead.
    - Redis keys `session:*` removed for that shop.
    - Shop token cleared in DB (`shops.access_token` empty, `uninstalled_at` set).
 3. Reinstall and verify access is restored and webhooks re-register.
+4. Trigger **customers/data_request** in the dev store or via a signed webhook replay.
+5. Verify the request is recorded in the GDPR audit trail and does not uninstall the shop.
+6. Trigger **customers/redact** and confirm the request is recorded without clearing the shop token.
+7. Trigger **shop/redact** and confirm shop-scoped cleanup matches uninstall behavior.
 
 ## Theme Extension (No Storefront Interference)
 1. Add the DigiCloset badge block to a product template.
@@ -58,4 +62,5 @@ Targets:
 ## Evidence to Capture
 - Screenshots of widget + badge across themes.
 - Logs showing webhook delivery accepted + cleanup completed.
+- Logs or Redis evidence showing data-request and customer-redact audit recording.
 - Locust report summary (p95 latency).

@@ -11,9 +11,8 @@ Features:
 import logging
 import re
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from datetime import datetime
-import hashlib
 
 
 class PIISafeFormatter(logging.Formatter):

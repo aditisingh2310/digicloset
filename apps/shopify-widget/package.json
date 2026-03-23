@@ -2,6 +2,7 @@
   "name": "@digicloset/shopify-widget",
   "version": "1.0.0",
   "description": "Virtual try-on widget for Shopify storefronts",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -9,9 +10,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
-    "test": "vitest run",
-    "test:ui": "vitest --ui"
+    "lint": "eslint src",
+    "test": "node ../../node_modules/vitest/vitest.mjs run --config vite.config.ts || vitest run",
+    "test:ui": "node ../../node_modules/vitest/vitest.mjs --ui --config vite.config.ts || vitest --ui"
   },
   "dependencies": {
     "react": "^18.2.0",

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 from datetime import datetime
 
 from app.models.audit import DeletionAudit
-from app.models.billing import SubscriptionRecord, UsageRecord
 from app.db.models import Shop, Subscription, UsageEvent, CreditBalance
 
 logger = logging.getLogger(__name__)

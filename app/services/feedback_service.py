@@ -1,4 +1,3 @@
-import json
 from app.models.feedback import OutfitFeedback
 
 FEEDBACK_FILE = "feedback_log.jsonl"

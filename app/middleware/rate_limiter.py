@@ -12,8 +12,8 @@ Features:
 - Thread-safe, async-compatible
 """
 import logging
-from typing import Dict, Callable, Optional
-from datetime import datetime, timedelta
+from typing import Callable, Optional
+from datetime import datetime
 from functools import wraps
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
