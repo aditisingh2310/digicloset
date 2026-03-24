@@ -174,19 +174,28 @@ def health() -> dict:
     """Health check endpoint used by load balancers and tests."""
     ok = True
     details = {"ai_service": True}
+    redis_required = settings.redis_required
     # quick Redis readiness check
     try:
         if getattr(app.state, "redis", None) is None:
             details["redis"] = False
-            ok = False
+            details["redis_required"] = redis_required
+            if redis_required:
+                ok = False
         else:
             details["redis"] = app.state.redis.ping()
-            if not details["redis"]:
+            if not details["redis"] and redis_required:
                 ok = False
+            if not details["redis"]:
+                details["redis_required"] = redis_required
     except Exception:
         details["redis"] = False
-        ok = False
+        details["redis_required"] = redis_required
+        if redis_required:
+            ok = False
     if ok:
+        if details.get("redis") is False:
+            return {"status": "ok", "details": details}
         return {"status": "ok"}
     return {"status": "unhealthy", "details": details}
 

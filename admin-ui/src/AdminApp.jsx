@@ -6,10 +6,15 @@ import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import "./admin-ui.css";
 
+const routerFuture = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+};
+
 export default function AdminApp() {
   return (
     <AppProvider i18n={{}}>
-      <Router>
+      <Router future={routerFuture}>
         <div className="dc-admin-shell">
           <Frame navigation={<AppNavigation />}>
             <div className="dc-admin-frame">

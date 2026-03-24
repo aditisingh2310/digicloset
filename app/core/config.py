@@ -1,6 +1,12 @@
 from typing import List
 import os
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 
 # pydantic v2 moved BaseSettings into a separate package; support environments
 try:
@@ -10,6 +16,7 @@ try:
     class Settings(BaseSettings):
         app_name: str = Field("DigiCloset", env="APP_NAME")
         debug: bool = Field(False, env="DEBUG")
+        redis_required: bool = Field(False, env="REDIS_REQUIRED")
 
         shopify_api_key: str = Field("", env="SHOPIFY_API_KEY")
         shopify_api_secret: str = Field("", env="SHOPIFY_API_SECRET")
@@ -31,6 +38,7 @@ except Exception:
     class Settings:
         app_name: str = os.getenv("APP_NAME", "DigiCloset")
         debug: bool = os.getenv("DEBUG", "False") in ("1", "true", "True")
+        redis_required: bool = os.getenv("REDIS_REQUIRED", "False") in ("1", "true", "True")
         shopify_api_key: str = os.getenv("SHOPIFY_API_KEY", "")
         shopify_api_secret: str = os.getenv("SHOPIFY_API_SECRET", "")
         shopify_api_version: str = os.getenv("SHOPIFY_API_VERSION", "2024-01")

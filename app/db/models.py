@@ -3,6 +3,12 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from datetime import datetime
 import os
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/digicloset")
 
 engine = create_engine(DATABASE_URL)

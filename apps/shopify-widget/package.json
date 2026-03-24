@@ -3,8 +3,14 @@
   "version": "1.0.0",
   "description": "Virtual try-on widget for Shopify storefronts",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/shopify-tryon-widget.js",
+  "module": "dist/shopify-tryon-widget.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/shopify-tryon-widget.es.js",
+      "default": "./dist/shopify-tryon-widget.js"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

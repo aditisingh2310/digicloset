@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import re
 import secrets
 import logging
+import time
 from datetime import datetime
 from typing import Optional
 from urllib.parse import urlencode
 
 import requests
 from fastapi import APIRouter, HTTPException, Request, Depends, Response, Cookie
-from starlette.responses import RedirectResponse
+from starlette.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from app.db.models import SessionLocal, Shop
 
@@ -33,6 +37,82 @@ def _redis(request: Request) -> Optional[object]:
     return getattr(request.app.state, "redis", None)
 
 
+def _is_secure_request(request: Request) -> bool:
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    return proto == "https"
+
+
+def _make_oauth_state(shop: str) -> str:
+    payload = {
+        "shop": shop,
+        "nonce": secrets.token_urlsafe(8),
+        "iat": int(time.time()),
+    }
+    encoded = base64.urlsafe_b64encode(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
+    ).decode().rstrip("=")
+    signature = hmac.new(
+        settings.shopify_api_secret.encode(), encoded.encode(), hashlib.sha256
+    ).hexdigest()
+    return f"{encoded}.{signature}"
+
+
+def _decode_oauth_state(state: str, shop: str, max_age_seconds: int = 300) -> None:
+    try:
+        encoded, signature = state.split(".", 1)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state") from exc
+
+    expected_signature = hmac.new(
+        settings.shopify_api_secret.encode(), encoded.encode(), hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(expected_signature, signature):
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
+    padding = "=" * (-len(encoded) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(encoded + padding).decode())
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state") from exc
+
+    if payload.get("shop") != shop:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
+    issued_at = int(payload.get("iat", 0))
+    if issued_at <= 0 or (time.time() - issued_at) > max_age_seconds:
+        raise HTTPException(status_code=400, detail="OAuth state expired")
+
+
+def _redis_get(redis_client: Optional[object], key: str) -> Optional[str]:
+    if not redis_client:
+        return None
+    try:
+        return redis_client.get(key)
+    except Exception as exc:
+        logger.warning("Redis read failed during OAuth flow: %s", exc)
+        return None
+
+
+def _redis_setex(redis_client: Optional[object], key: str, ttl: int, value: str) -> bool:
+    if not redis_client:
+        return False
+    try:
+        redis_client.setex(key, ttl, value)
+        return True
+    except Exception as exc:
+        logger.warning("Redis write failed during OAuth flow: %s", exc)
+        return False
+
+
+def _redis_delete(redis_client: Optional[object], key: str) -> None:
+    if not redis_client:
+        return None
+    try:
+        redis_client.delete(key)
+    except Exception as exc:
+        logger.warning("Redis delete failed during OAuth flow: %s", exc)
+
+
 def _validate_shop_domain(shop: str) -> str:
     shop = (shop or "").strip().lower()
     if not SHOP_DOMAIN_RE.match(shop):
@@ -43,10 +123,9 @@ def _validate_shop_domain(shop: str) -> str:
 @router.get("/install")
 async def shopify_install(request: Request, shop: str):
     shop = _validate_shop_domain(shop)
-    state = secrets.token_urlsafe(16)
+    state = _make_oauth_state(shop)
     redis_client = _redis(request)
-    if redis_client:
-        redis_client.setex(f"oauth_state:{state}", 300, shop)
+    _redis_setex(redis_client, f"oauth_state:{state}", 300, shop)
 
     app_base = request.headers.get("x-forwarded-proto", request.url.scheme) + "://" + request.headers.get("host", request.url.netloc)
     params = {
@@ -56,11 +135,27 @@ async def shopify_install(request: Request, shop: str):
         "state": state,
     }
     install_url = f"https://{shop}/admin/oauth/authorize?{urlencode(params)}"
-    return {"install_url": install_url, "state": state}
+    response = JSONResponse({"install_url": install_url, "state": state})
+    response.set_cookie(
+        "oauth_state",
+        state,
+        httponly=True,
+        secure=_is_secure_request(request),
+        samesite="lax",
+        max_age=300,
+    )
+    return response
 
 
 @router.get("/callback")
-async def shopify_callback(request: Request, response: Response, state: Optional[str] = None, session_id: Optional[str] = Cookie(None), db: Session = Depends(get_db)):
+async def shopify_callback(
+    request: Request,
+    response: Response,
+    state: Optional[str] = None,
+    session_id: Optional[str] = Cookie(None),
+    oauth_state: Optional[str] = Cookie(None),
+    db: Session = Depends(get_db),
+):
     # Verify HMAC and state parameter
     qs = dict(request.query_params)
     verify_oauth_hmac(qs)
@@ -71,8 +166,14 @@ async def shopify_callback(request: Request, response: Response, state: Optional
     if not code or not returned_state:
         raise HTTPException(status_code=400, detail="Missing code/state")
 
+    _decode_oauth_state(returned_state, shop)
     redis_client = _redis(request)
-    if not redis_client or not redis_client.get(f"oauth_state:{returned_state}"):
+    stored_shop = _redis_get(redis_client, f"oauth_state:{returned_state}")
+    if stored_shop is not None:
+        if stored_shop != shop:
+            raise HTTPException(status_code=400, detail="Invalid OAuth state")
+        _redis_delete(redis_client, f"oauth_state:{returned_state}")
+    elif oauth_state != returned_state:
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
     token_res = requests.post(
@@ -118,12 +219,22 @@ async def shopify_callback(request: Request, response: Response, state: Optional
     # Store token server-side in Redis with a session id and set secure cookie
     sess = secrets.token_urlsafe(32)
     if redis_client:
-        redis_client.setex(f"session:{sess}", 3600 * 24 * 7, json.dumps({"shop": shop, "access_token": access_token}))
-        redis_client.setex(f"session_shop:{sess}", 3600 * 24 * 7, shop)
-        redis_client.sadd(f"shop_sessions:{shop}", sess)
-        redis_client.expire(f"shop_sessions:{shop}", 3600 * 24 * 30)
-        redis_client.delete(f"oauth_state:{returned_state}")
+        try:
+            redis_client.setex(f"session:{sess}", 3600 * 24 * 7, json.dumps({"shop": shop, "access_token": access_token}))
+            redis_client.setex(f"session_shop:{sess}", 3600 * 24 * 7, shop)
+            redis_client.sadd(f"shop_sessions:{shop}", sess)
+            redis_client.expire(f"shop_sessions:{shop}", 3600 * 24 * 30)
+        except Exception as exc:
+            logger.warning("Redis session persistence failed during OAuth callback: %s", exc)
 
     response = RedirectResponse(url="/")
-    response.set_cookie("session_id", sess, httponly=True, secure=True, samesite="lax", max_age=3600 * 24 * 7)
+    response.delete_cookie("oauth_state")
+    response.set_cookie(
+        "session_id",
+        sess,
+        httponly=True,
+        secure=_is_secure_request(request),
+        samesite="lax",
+        max_age=3600 * 24 * 7,
+    )
     return response

@@ -8,11 +8,16 @@ import Home from "../pages/Home";
 import Onboarding from "../pages/Onboarding";
 import Pricing from "../pages/Pricing";
 
+const routerFuture = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+};
+
 function renderWithProviders(node, route = "/") {
   window.history.pushState({}, "Test", route);
   return render(
     <AppProvider i18n={{}}>
-      <MemoryRouter initialEntries={[route]}>
+      <MemoryRouter initialEntries={[route]} future={routerFuture}>
         <Frame>{node}</Frame>
       </MemoryRouter>
     </AppProvider>,
