@@ -13,9 +13,23 @@ async def billing_enforcement_middleware(request: Request, call_next: Callable):
     Allows billing endpoints and public endpoints.
     """
     path = request.url.path
-    # allow billing endpoints and webhooks to pass through
-    allow_prefixes = ("/api/billing", "/api/webhooks", "/health", "/api/auth", "/privacy", "/terms")
-    if any(path.startswith(p) for p in allow_prefixes):
+    # Allow public app surfaces and docs to pass through without tenant context.
+    allow_paths = {
+        "/",
+        "/privacy",
+        "/terms",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/favicon.ico",
+    }
+    allow_prefixes = (
+        "/api/billing",
+        "/api/webhooks",
+        "/health",
+        "/api/auth",
+    )
+    if path in allow_paths or any(path.startswith(p) for p in allow_prefixes):
         return await call_next(request)
 
     tenant = getattr(request.state, "tenant", None)

@@ -26,6 +26,8 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     redis = None
 
+from app.core.redis_runtime import log_optional_redis_issue, redis_connection_kwargs
+
 logger = logging.getLogger(__name__)
 
 
@@ -177,22 +179,19 @@ class AIMeteringService:
 
         if not self.redis_client:
             if redis is None:
-                logger.warning("Redis package not available. Metering disabled.")
+                log_optional_redis_issue(logger, "Redis package not available. Metering disabled.")
                 self.redis_client = None
                 return
             try:
                 self.redis_client = redis.from_url(
                     self.redis_url,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                    socket_keepalive=True,
-                    health_check_interval=10,
+                    **redis_connection_kwargs(),
                 )
                 # Test connection
                 self.redis_client.ping()
                 logger.info("AI metering service initialized successfully")
             except Exception as e:
-                logger.warning(f"Failed to connect to Redis: {e}. Metering disabled.")
+                log_optional_redis_issue(logger, f"Failed to connect to Redis: {e}. Metering disabled.")
                 self.redis_client = None
 
     def _get_usage_key(self, shop_id: str) -> str:

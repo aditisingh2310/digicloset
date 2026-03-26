@@ -11,8 +11,8 @@ class OnboardingService:
         self.billing = billing_service
 
     async def status(self) -> Dict:
-        sub = await self.billing.store.get_subscription(self.billing.shop)
-        usage = await self.billing.store.get_usage(self.billing.shop)
+        sub = await self.billing.store.get_subscription(self.billing.shop_domain)
+        usage = await self.billing.store.get_usage(self.billing.shop_domain)
         plan = sub.plan_name if sub else "starter"
         trial_days_remaining = None
         if sub and sub.trial_ends_at:
@@ -30,8 +30,11 @@ class OnboardingService:
             plan_conf = {}
 
         if usage:
-            limit = plan_conf.get("ai_call_limit_per_month")
-            usage_remaining = (limit - usage.ai_calls_this_month) if limit is not None else None
+            limit = plan_conf.get("credits")
+            if limit == float("inf"):
+                usage_remaining = "unlimited"
+            else:
+                usage_remaining = (limit - usage.ai_calls_this_month) if limit is not None else None
 
         onboarding_complete = bool(sub and sub.status in ("active", "cancelled"))
 

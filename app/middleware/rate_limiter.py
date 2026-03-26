@@ -32,6 +32,8 @@ except Exception:  # pragma: no cover - optional dependency
 
 logger = logging.getLogger(__name__)
 
+from app.core.redis_runtime import log_optional_redis_issue, redis_connection_kwargs
+
 
 class RateLimitConfig:
     """Rate limiting configuration by endpoint category."""
@@ -56,22 +58,19 @@ class RateLimiter:
     def __init__(self, config: RateLimitConfig = None):
         self.config = config or RateLimitConfig()
         if redis is None:
-            logger.warning("Redis package not available. Rate limiting disabled.")
+            log_optional_redis_issue(logger, "Redis package not available. Rate limiting disabled.")
             self.redis_client = None
             return
         try:
             self.redis_client = redis.from_url(
                 self.config.redis_url,
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_keepalive=True,
-                health_check_interval=10,
+                **redis_connection_kwargs(),
             )
             # Test connection
             self.redis_client.ping()
             logger.info("Redis rate limiter initialized successfully")
         except Exception as e:
-            logger.warning(f"Failed to connect to Redis: {e}. Rate limiting disabled.")
+            log_optional_redis_issue(logger, f"Failed to connect to Redis: {e}. Rate limiting disabled.")
             self.redis_client = None
     
     def _get_rate_limit(self, category: str) -> int:

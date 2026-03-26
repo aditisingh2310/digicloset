@@ -55,6 +55,18 @@ export default function TryOnWidget() {
     return typeof candidate === 'string' ? candidate : '';
   };
 
+  const resolveImageUrl = (value: unknown): string | undefined => {
+    if (typeof value !== 'string' || !value) {
+      return undefined;
+    }
+
+    if (value.startsWith('/')) {
+      return new URL(value, window.location.origin).toString();
+    }
+
+    return value;
+  };
+
   const normalizeResult = (
     data: Record<string, unknown>,
     fallbackId: string
@@ -68,12 +80,7 @@ export default function TryOnWidget() {
       ...data,
       id: resolveTryOnId(data) || fallbackId,
       status: typeof data.status === 'string' ? data.status : 'completed',
-      image_url:
-        typeof data.image_url === 'string'
-          ? data.image_url
-          : typeof data.generated_image_url === 'string'
-            ? data.generated_image_url
-            : undefined,
+      image_url: resolveImageUrl(data.image_url) || resolveImageUrl(data.generated_image_url),
       processing_time:
         typeof data.processing_time === 'number'
           ? data.processing_time
@@ -140,7 +147,13 @@ export default function TryOnWidget() {
         const data = (await response.json()) as Record<string, unknown>;
 
         if (data.status === 'completed' || data.status === 'succeeded') {
-          setResult(normalizeResult(data, tryonId));
+          const normalized = normalizeResult(data, tryonId);
+          setResult(normalized);
+          window.dispatchEvent(
+            new CustomEvent('tryon:generated', {
+              detail: { id: normalized.id, image_url: normalized.image_url },
+            })
+          );
           setState('result');
           return;
         }
@@ -157,6 +170,11 @@ export default function TryOnWidget() {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         setError(message);
+        window.dispatchEvent(
+          new CustomEvent('tryon:error', {
+            detail: { id: tryonId, error: message },
+          })
+        );
         setState('error');
         return;
       }
@@ -169,30 +187,22 @@ export default function TryOnWidget() {
   return (
     <div className="tryon-widget">
       <div className="tryon-widget__shell">
-        <aside className="tryon-widget__hero">
-          <p className="tryon-widget__eyebrow">DigiCloset virtual fitting room</p>
-          <h1>Help shoppers see the product on a real person before they buy.</h1>
-          <p className="tryon-widget__summary">
-            Upload a selfie and the garment image. We turn that into a clean
-            try-on preview designed to reduce hesitation and keep the PDP
-            experience feeling premium.
-          </p>
-
-          <div className="tryon-widget__trust">
-            <div className="tryon-widget__trust-item">
-              <strong>Fast</strong>
-              <span>Most previews finish in under a minute.</span>
-            </div>
-            <div className="tryon-widget__trust-item">
-              <strong>Private</strong>
-              <span>Session images are handled for rendering only.</span>
-            </div>
-            <div className="tryon-widget__trust-item">
-              <strong>Flexible</strong>
-              <span>Works with customer selfies and product shots.</span>
-            </div>
+        <header className="tryon-widget__header">
+          <div className="tryon-widget__header-copy">
+            <p className="tryon-widget__eyebrow">DigiCloset try-on</p>
+            <h2>Let shoppers preview the look before checkout.</h2>
+            <p className="tryon-widget__summary">
+              Upload one customer photo and one product image to create a clean,
+              product-page friendly try-on preview.
+            </p>
           </div>
-        </aside>
+
+          <ul className="tryon-widget__meta" aria-label="Widget highlights">
+            <li>Two image inputs</li>
+            <li>Usually under a minute</li>
+            <li>Built for PDP placement</li>
+          </ul>
+        </header>
 
         <section className="tryon-widget__panel" aria-live="polite">
           {state === 'upload' && <ImageUpload onUpload={handleUpload} />}

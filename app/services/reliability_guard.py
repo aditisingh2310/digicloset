@@ -27,6 +27,8 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     redis = None
 
+from app.core.redis_runtime import log_optional_redis_issue, redis_connection_kwargs
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
@@ -167,22 +169,19 @@ class ReliabilityGuard:
 
         if not self.redis_client:
             if redis is None:
-                logger.warning("Redis package not available. Reliability features limited.")
+                log_optional_redis_issue(logger, "Redis package not available. Reliability features limited.")
                 self.redis_client = None
                 return
             try:
                 self.redis_client = redis.from_url(
                     self.redis_url,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                    socket_keepalive=True,
-                    health_check_interval=10,
+                    **redis_connection_kwargs(),
                 )
                 # Test connection
                 self.redis_client.ping()
                 logger.info("Reliability guard initialized successfully")
             except Exception as e:
-                logger.warning(f"Failed to connect to Redis: {e}. Reliability features limited.")
+                log_optional_redis_issue(logger, f"Failed to connect to Redis: {e}. Reliability features limited.")
                 self.redis_client = None
 
     def _get_circuit_key(self, service_name: str) -> str:

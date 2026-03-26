@@ -21,6 +21,7 @@ from app.middleware.billing import billing_enforcement_middleware
 from app.middleware.rate_limiter import RateLimitMiddleware
 import os
 import logging
+from datetime import datetime, timedelta
 from sqlalchemy import text
 
 
@@ -41,8 +42,47 @@ async def _startup(app: FastAPI) -> None:
 
     try:
         app.state.redis = get_redis_connection(decode_responses=True)
+        try:
+            app.state.redis.ping()
+        except Exception:
+            app.state.redis = None
     except Exception:
         app.state.redis = None
+
+    if settings.debug:
+        from app.models.billing import SubscriptionRecord, UsageRecord
+        from app.services.billing_service import InMemoryStore
+
+        if getattr(app.state, "store", None) is None:
+            app.state.store = InMemoryStore()
+
+        trial_ends_at = datetime.utcnow() + timedelta(days=7)
+        app.state.store.subs.setdefault(
+            settings.dev_shop_domain,
+            SubscriptionRecord(
+                shop_domain=settings.dev_shop_domain,
+                plan_name="starter",
+                status="active",
+                charge_id="local-starter",
+                trial_ends_at=trial_ends_at,
+                activated_at=datetime.utcnow(),
+            ),
+        )
+        app.state.store.usage.setdefault(
+            settings.dev_shop_domain,
+            UsageRecord(shop_domain=settings.dev_shop_domain),
+        )
+        app.state.tryon_jobs = getattr(app.state, "tryon_jobs", {})
+        app.state.dev_merchant_state = getattr(app.state, "dev_merchant_state", {})
+        app.state.dev_merchant_state.setdefault(
+            settings.dev_shop_domain,
+            {
+                "tryons_generated": 0,
+                "credits_used": 0,
+                "generation_history": [],
+                "widget_enabled": True,
+            },
+        )
 
     async def _cleanup_shop(shop_domain: str) -> None:
         return None
@@ -106,6 +146,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+
+@app.get("/")
+def root() -> dict:
+    return {
+        "app": settings.app_name,
+        "docs": "/docs",
+        "health": "/health",
+        "privacy": "/privacy",
+        "terms": "/terms",
+    }
+
 
 # Expose simple policy and terms routes
 @app.get("/privacy")

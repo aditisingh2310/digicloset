@@ -1,9 +1,46 @@
+:root {
+  --dc-bg: #f3f1ea;
+  --dc-bg-soft: #faf8f3;
+  --dc-surface: rgba(255, 255, 255, 0.9);
+  --dc-surface-strong: #ffffff;
+  --dc-border: rgba(27, 31, 35, 0.08);
+  --dc-border-strong: rgba(27, 31, 35, 0.12);
+  --dc-text: #18212b;
+  --dc-text-muted: #5b6672;
+  --dc-accent: #236b52;
+  --dc-accent-soft: rgba(35, 107, 82, 0.08);
+  --dc-shadow: 0 14px 34px rgba(24, 33, 43, 0.05);
+  --dc-radius-lg: 24px;
+  --dc-radius-md: 18px;
+  --dc-radius-sm: 14px;
+}
+
 .dc-admin-shell {
   min-height: 100vh;
+  color: var(--dc-text);
   background:
-    radial-gradient(circle at top left, rgba(57, 177, 255, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(15, 121, 72, 0.15), transparent 24%),
-    linear-gradient(180deg, #f4f8ff 0%, #eef5f0 52%, #f8fafc 100%);
+    radial-gradient(circle at top left, rgba(205, 225, 214, 0.58), transparent 28%),
+    radial-gradient(circle at top right, rgba(242, 226, 208, 0.4), transparent 24%),
+    linear-gradient(180deg, #f7f5ef 0%, #f3f1ea 48%, #f7f6f2 100%);
+}
+
+.dc-admin-shell .Polaris-Frame__Main {
+  background: transparent;
+}
+
+.dc-admin-shell .Polaris-TopBar {
+  background: rgba(247, 245, 240, 0.72);
+  backdrop-filter: blur(14px);
+}
+
+.dc-admin-shell .Polaris-Navigation {
+  background: rgba(251, 250, 247, 0.86);
+  backdrop-filter: blur(16px);
+  border-right: 1px solid var(--dc-border);
+}
+
+.dc-admin-shell .Polaris-Navigation__PrimaryNavigation {
+  padding-top: 8px;
 }
 
 .dc-admin-frame {
@@ -17,50 +54,112 @@
   gap: 20px;
 }
 
-.dc-hero-card {
-  position: relative;
-  overflow: hidden;
-  color: #f8fafc;
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 28%),
-    linear-gradient(135deg, #0f172a 0%, #102a43 50%, #0b6d4a 100%);
+.dc-nav-brand {
+  margin: 12px 12px 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--dc-border);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--dc-shadow);
 }
 
-.dc-hero-card::after {
-  position: absolute;
-  inset: auto -80px -110px auto;
-  width: 240px;
-  height: 240px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  content: "";
+.dc-nav-brand h2 {
+  margin: 6px 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
-.dc-hero-card .Polaris-Text,
-.dc-hero-card p {
-  color: inherit;
+.dc-nav-brand p {
+  margin: 0;
+  color: var(--dc-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 
 .dc-kicker {
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  opacity: 0.82;
+  color: #7b5b3a;
+}
+
+.dc-hero-card,
+.dc-surface-card,
+.dc-preview-card,
+.dc-plan-card,
+.dc-step-card,
+.dc-support-card {
+  min-height: 100%;
+  padding: 24px;
+  border: 1px solid var(--dc-border);
+  border-radius: var(--dc-radius-lg);
+  background: var(--dc-surface);
+  box-shadow: var(--dc-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.dc-hero-card {
+  overflow: hidden;
+}
+
+.dc-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.8fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.dc-hero-summary {
+  padding: 18px;
+  border: 1px solid var(--dc-border);
+  border-radius: var(--dc-radius-md);
+  background: linear-gradient(180deg, #ffffff 0%, #f7f8f4 100%);
+}
+
+.dc-hero-summary-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dc-hero-summary-list li {
+  display: grid;
+  gap: 4px;
+}
+
+.dc-hero-summary-list span {
+  color: var(--dc-text-muted);
+  font-size: 0.82rem;
+}
+
+.dc-hero-summary-list strong {
+  font-size: 0.98rem;
+  font-weight: 700;
 }
 
 .dc-hero-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .dc-pill {
-  padding: 6px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 7px 12px;
+  border: 1px solid rgba(123, 91, 58, 0.16);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 0.86rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #5f4730;
+  font-size: 0.84rem;
 }
 
+.dc-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dc-preview-grid,
 .dc-stat-grid,
 .dc-pricing-grid {
   display: grid;
@@ -68,32 +167,64 @@
   gap: 16px;
 }
 
-.dc-stat-card {
-  min-height: 100%;
+.dc-preview-card p {
+  color: var(--dc-text-muted);
+  line-height: 1.65;
 }
 
-.dc-stat-card .dc-stat-value {
-  font-size: 1.9rem;
+.dc-step-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dc-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dc-step-number {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--dc-accent-soft);
+  color: var(--dc-accent);
   font-weight: 700;
-  line-height: 1;
 }
 
-.dc-surface-card,
-.dc-plan-card {
-  min-height: 100%;
-  border-radius: 18px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
+.dc-checklist,
+.dc-bullet-list,
+.dc-plan-feature-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.dc-plan-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+.dc-checklist li,
+.dc-bullet-list li,
+.dc-plan-feature-list li {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--dc-border);
+  border-radius: var(--dc-radius-sm);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.dc-support-card {
+  background: linear-gradient(180deg, rgba(35, 107, 82, 0.06), rgba(255, 255, 255, 0.94));
 }
 
 .dc-plan-card--featured {
-  border-color: rgba(11, 109, 74, 0.28);
-  box-shadow: 0 22px 44px rgba(11, 109, 74, 0.16);
-  transform: translateY(-4px);
+  border-color: rgba(35, 107, 82, 0.2);
+  background: linear-gradient(180deg, rgba(35, 107, 82, 0.04), rgba(255, 255, 255, 0.98));
 }
 
 .dc-price {
@@ -105,39 +236,23 @@
 .dc-price strong {
   font-size: 2rem;
   line-height: 1;
+  letter-spacing: -0.04em;
 }
 
-.dc-checklist,
-.dc-bullet-list {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.dc-checklist li,
-.dc-bullet-list li {
-  display: grid;
-  gap: 4px;
-  padding: 14px 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  background: rgba(248, 250, 252, 0.86);
-}
-
-.dc-inline-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.dc-support-card {
-  border-left: 4px solid #0b6d4a;
-}
-
+.dc-plan-caption,
 .dc-muted {
-  color: #475569;
+  color: var(--dc-text-muted);
+}
+
+.dc-divider {
+  height: 1px;
+  background: var(--dc-border);
+}
+
+@media (max-width: 900px) {
+  .dc-hero-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
@@ -145,7 +260,12 @@
     padding-bottom: 20px;
   }
 
-  .dc-plan-card--featured {
-    transform: none;
+  .dc-hero-card,
+  .dc-surface-card,
+  .dc-preview-card,
+  .dc-plan-card,
+  .dc-step-card,
+  .dc-support-card {
+    padding: 18px;
   }
 }

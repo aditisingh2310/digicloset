@@ -18,6 +18,8 @@ def get_redis_connection(**kwargs):
 
         url = get_redis_url()
         logger.info("Connecting to Redis at %s", url)
+        kwargs.setdefault("socket_connect_timeout", float(os.getenv("REDIS_SOCKET_CONNECT_TIMEOUT", "0.2")))
+        kwargs.setdefault("socket_timeout", float(os.getenv("REDIS_SOCKET_TIMEOUT", "0.2")))
         return Redis.from_url(url, **kwargs)
     except Exception:
         # Provide a minimal in-memory stub compatible with used methods in tests

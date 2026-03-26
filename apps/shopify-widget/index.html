@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DigiCloset Widget Dev</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top, rgba(212, 229, 220, 0.5), transparent 32%),
+          linear-gradient(180deg, #f4f2ec 0%, #efeee8 100%);
+        color: #1f2933;
+      }
+
+      .widget-dev-shell {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 32px 20px 56px;
+      }
+
+      .widget-dev-card {
+        overflow: hidden;
+        border: 1px solid rgba(54, 74, 92, 0.08);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 20px 48px rgba(24, 33, 43, 0.08);
+      }
+
+      .widget-dev-content {
+        padding: 24px;
+      }
+
+      .widget-dev-eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #6f5b42;
+      }
+
+      .widget-dev-title {
+        margin: 10px 0 8px;
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        line-height: 1.08;
+      }
+
+      .widget-dev-copy {
+        margin: 0;
+        color: #5b6672;
+        line-height: 1.65;
+      }
+
+      .widget-dev-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .widget-dev-meta li {
+        padding: 9px 12px;
+        border: 1px solid rgba(54, 74, 92, 0.08);
+        border-radius: 999px;
+        background: #f7f8f5;
+        color: #52606d;
+        font-size: 0.9rem;
+      }
+
+      #tryon-widget-container {
+        min-height: 560px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="widget-dev-shell">
+      <section class="widget-dev-card">
+        <div class="widget-dev-content">
+          <div class="widget-dev-eyebrow">Widget Preview</div>
+          <h1 class="widget-dev-title">Storefront try-on playground</h1>
+          <p class="widget-dev-copy">
+            This local page is only here to preview the widget itself. The goal is a clean,
+            contained product module, not a second landing page around it.
+          </p>
+          <ul class="widget-dev-meta">
+            <li>Local URL: http://localhost:3000/</li>
+            <li>Backend proxy: http://localhost:8000</li>
+            <li>Widget mounted in one isolated container</li>
+          </ul>
+        </div>
+        <div id="tryon-widget-container"></div>
+      </section>
+
+      <script type="module" src="/src/dev.tsx"></script>
+    </main>
+  </body>
+</html>

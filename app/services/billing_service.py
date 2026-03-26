@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.db.models import Shop, Subscription, UsageEvent, CreditBalance
+from app.core.config import settings
 from app.core.plans import PLANS
 from app.services.shopify_client import ShopifyClient
 from app.models.billing import SubscriptionRecord, UsageRecord
@@ -77,14 +78,18 @@ class BillingService:
             if plan_name not in PLANS:
                 raise ValueError(f"Invalid plan: {plan_name}")
             existing = await self.store.get_subscription(self.shop_domain)
-            if existing and existing.status in ("active", "pending"):
+            if existing and existing.status in ("active", "pending") and existing.plan_name == plan_name:
                 return {"confirmation_url": None, "subscription_id": existing.charge_id}
             trial_days = PLANS[plan_name]["trial_days"]
+            should_activate = settings.debug and settings.dev_auto_activate_billing
+            charge_id = f"local-{plan_name}-{int(datetime.utcnow().timestamp())}"
             record = SubscriptionRecord(
                 shop_domain=self.shop_domain,
                 plan_name=plan_name,
-                status="pending",
+                charge_id=charge_id,
+                status="active" if should_activate else "pending",
                 trial_ends_at=datetime.utcnow() + timedelta(days=trial_days) if trial_days else None,
+                activated_at=datetime.utcnow() if should_activate else None,
             )
             await self.store.save_subscription(record)
             return {"confirmation_url": None, "subscription_id": record.charge_id}
@@ -201,10 +206,18 @@ class BillingService:
     async def get_status(self) -> dict:
         if self.store is not None:
             sub = await self.store.get_subscription(self.shop_domain)
+            usage = await self.store.get_usage(self.shop_domain)
+            plan = sub.plan_name if sub else None
+            plan_conf = PLANS.get(plan or "starter", {})
+            credits_limit = plan_conf.get("credits", 0)
+            used_credits = usage.ai_calls_this_month if usage else 0
+            remaining = "unlimited" if credits_limit == float("inf") else credits_limit
+            if credits_limit != float("inf"):
+                remaining = max(0, credits_limit - used_credits)
             return {
-                "plan": sub.plan_name if sub else None,
+                "plan": plan,
                 "status": sub.status if sub else "inactive",
-                "credits": 0,
+                "credits": remaining,
                 "reset_date": None,
             }
         shop = await self.ensure_shop()

@@ -14,25 +14,23 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--gray-600);
+  color: #6f5b42;
 }
 
 .tryon-widget .result-display .result-image-container {
   overflow: hidden;
   padding: 14px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at top, rgba(191, 219, 254, 0.34), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f8f5 100%);
 }
 
 .tryon-widget .result-display .result-image {
+  display: block;
   max-width: 100%;
   height: auto;
-  display: block;
   border-radius: 18px;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
 }
 
 .tryon-widget .result-display .result-info {
@@ -42,7 +40,7 @@
 
 .tryon-widget .result-display .processing-time {
   font-weight: 700;
-  color: #0f766e;
+  color: #1f6b53;
 }
 
 .tryon-widget .result-display .result-caption {
@@ -57,9 +55,9 @@
 
 .tryon-widget .result-display .result-message {
   padding: 14px 16px;
-  border: 1px solid rgba(14, 116, 144, 0.14);
+  border: 1px solid rgba(31, 107, 83, 0.14);
   border-radius: 16px;
-  background: rgba(240, 249, 255, 0.86);
+  background: rgba(245, 249, 247, 0.92);
   color: #0f172a;
 }
 

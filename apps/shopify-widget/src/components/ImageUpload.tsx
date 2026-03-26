@@ -233,10 +233,10 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
     <div className="image-upload">
       <div className="image-upload__header">
         <p className="image-upload__eyebrow">Step 1</p>
-        <h2>Create a try-on preview</h2>
+        <h2>Start with two clear images</h2>
         <p>
-          Add one customer photo and one product image. The cleaner the source
-          images are, the better the final drape and lighting will look.
+          Add one customer photo and one product image. Cleaner inputs usually
+          give cleaner drape, edges, and lighting in the final preview.
         </p>
       </div>
 
@@ -274,7 +274,7 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
             disabled={!userImage || !garmentImage}
             className="submit-btn"
           >
-            Generate Try-On Preview
+            Generate preview
           </button>
         </div>
 

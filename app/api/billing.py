@@ -8,6 +8,7 @@ from app.services.billing_service import BillingService
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -15,13 +16,19 @@ def get_db():
     finally:
         db.close()
 
+
+def get_billing_backend(request: Request, db: Session):
+    """Prefer the app-scoped in-memory store for local debug runs."""
+    return getattr(request.app.state, "store", None) or db
+
+
 @router.post("/subscribe")
 async def subscribe(request: Request, plan: str = "starter", db: Session = Depends(get_db)):
     tenant = getattr(request.state, "tenant", None)
     if not tenant:
         raise HTTPException(status_code=401, detail="Missing tenant")
 
-    svc = BillingService(tenant.shop_domain, tenant.access_token, db)
+    svc = BillingService(tenant.shop_domain, tenant.access_token, get_billing_backend(request, db))
     try:
         result = await svc.subscribe(plan)
         return result
@@ -34,7 +41,7 @@ async def billing_status(request: Request, db: Session = Depends(get_db)):
     if not tenant:
         raise HTTPException(status_code=401, detail="Missing tenant")
 
-    svc = BillingService(tenant.shop_domain, tenant.access_token, db)
+    svc = BillingService(tenant.shop_domain, tenant.access_token, get_billing_backend(request, db))
     try:
         status = await svc.get_status()
         return status
@@ -68,8 +75,8 @@ async def billing_webhook(request: Request, db: Session = Depends(get_db)):
 
 # Activation endpoint after user approves
 @router.get("/activate")
-async def activate_subscription(charge_id: str, shop: str, db: Session = Depends(get_db)):
-    svc = BillingService(shop, "", db)  # access_token will be fetched
+async def activate_subscription(charge_id: str, shop: str, request: Request, db: Session = Depends(get_db)):
+    svc = BillingService(shop, "", get_billing_backend(request, db))  # access_token will be fetched
     try:
         sub = await svc.activate_subscription(charge_id)
         return {"status": "activated", "plan": sub.plan_name}

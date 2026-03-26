@@ -164,7 +164,7 @@ pytest tests
 
 Current expected result:
 
-- `65 passed`
+- `67 passed`
 - `3 skipped`
 
 The three skips are currently normal in this local Windows setup:
@@ -210,6 +210,7 @@ Open:
 
 Important note:
 
+- the widget dev server now serves a local preview page at `/`
 - the widget dev server proxies `/api/*` to `http://localhost:8000`
 - the current widget client code expects `/api/v1/*` backend routes
 - that means the widget shell can run locally, but the full try-on generation flow is not guaranteed from the root backend alone

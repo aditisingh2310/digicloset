@@ -33,10 +33,11 @@ export default function ResultDisplay({ result, onRetry }: ResultDisplayProps) {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
+      const contentType = response.headers.get('content-type') || '';
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `tryon-${result.id}.png`;
+      a.download = `tryon-${result.id}.${contentType.includes('svg') ? 'svg' : 'png'}`;
       a.click();
       window.URL.revokeObjectURL(url);
       setMessage('Image saved to your device.');

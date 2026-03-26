@@ -61,7 +61,7 @@
 
   font-family: var(--font-family);
   color: var(--gray-900);
-  background: #ffffff;
+  background: transparent;
 }
 
 .tryon-widget button {
@@ -152,25 +152,5 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .tryon-widget {
-    background: var(--gray-900);
-    color: var(--gray-100);
-  }
-
-  .tryon-widget input,
-  .tryon-widget select {
-    background: var(--gray-700);
-    color: var(--gray-100);
-    border-color: var(--gray-600);
-  }
-
-  .tryon-widget .upload-area {
-    background: var(--gray-700);
-    border-color: var(--gray-600);
   }
 }

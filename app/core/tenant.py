@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import Request, HTTPException
 from starlette.responses import JSONResponse
 
+from app.core.config import settings
 from app.utils.errors import ErrorResponse, ErrorCode
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ async def tenant_middleware(request: Request, call_next):
     Rejects requests missing tenant headers/cookie with 401.
     """
     # Allow health, public docs and webhook endpoints to bypass tenant enforcement
-    public_paths = ("/openapi.json", "/docs", "/redoc", "/privacy", "/terms")
+    public_paths = ("/", "/openapi.json", "/docs", "/redoc", "/privacy", "/terms", "/favicon.ico")
     if request.url.path.startswith("/health") or request.url.path in public_paths or request.url.path.startswith("/api/webhooks") or request.url.path.startswith("/api/auth"):
         return await call_next(request)
 
@@ -49,7 +50,10 @@ async def tenant_middleware(request: Request, call_next):
     if not shop or not auth:
         session_id = request.cookies.get("session_id")
         if session_id and getattr(request.app.state, "redis", None):
-            session_data = request.app.state.redis.get(f"session:{session_id}")
+            try:
+                session_data = request.app.state.redis.get(f"session:{session_id}")
+            except Exception:
+                session_data = None
             if session_data:
                 try:
                     session_json = json.loads(session_data)
@@ -58,6 +62,17 @@ async def tenant_middleware(request: Request, call_next):
                 except Exception:
                     shop = None
                     auth = None
+
+    host = request.url.hostname or ""
+    if (
+        (not shop or not auth)
+        and settings.debug
+        and host in {"localhost", "127.0.0.1"}
+        and request.url.path.startswith("/api/")
+    ):
+        shop = settings.dev_shop_domain
+        auth = f"Bearer {settings.dev_access_token}"
+        request.state.local_dev_tenant = True
 
     if not shop or not auth:
         request_id = getattr(request.state, "request_id", None)

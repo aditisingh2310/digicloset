@@ -13,6 +13,11 @@ export default function AppNavigation() {
 
   return (
     <Navigation location={location.pathname}>
+      <div className="dc-nav-brand">
+        <p className="dc-kicker">DigiCloset</p>
+        <h2>Admin Preview</h2>
+        <p>Simple mock surfaces for overview, onboarding, and pricing.</p>
+      </div>
       <Navigation.Section
         items={NAV_ITEMS.map((item) => ({
           label: item.label,

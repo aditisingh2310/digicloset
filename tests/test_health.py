@@ -19,6 +19,20 @@ def test_health_ready_is_public():
     assert "missing" in payload
 
 
+def test_docs_is_public():
+    client = TestClient(app)
+    resp = client.get("/docs")
+    assert resp.status_code == 200
+    assert "Swagger UI" in resp.text
+
+
+def test_openapi_is_public():
+    client = TestClient(app)
+    resp = client.get("/openapi.json")
+    assert resp.status_code == 200
+    assert resp.json()["openapi"].startswith("3.")
+
+
 def test_health_reports_optional_redis_as_ok(monkeypatch):
     client = TestClient(app)
     previous_redis = getattr(app.state, "redis", None)

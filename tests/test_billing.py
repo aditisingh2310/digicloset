@@ -1,6 +1,8 @@
 import asyncio
 import pytest
+from fastapi.testclient import TestClient
 
+from app.main import app
 from app.services.billing_service import InMemoryStore, BillingService
 from app.models.billing import SubscriptionRecord
 
@@ -73,3 +75,19 @@ def test_increment_atomicity():
     run(run_workers())
     usage = run(store.get_usage(shop))
     assert usage.ai_calls_this_month == 20
+
+
+def test_local_billing_endpoints_use_debug_store():
+    with TestClient(app, base_url="http://localhost") as client:
+        status_before = client.get("/api/billing/status")
+        assert status_before.status_code == 200
+        assert status_before.json()["status"] == "active"
+        assert status_before.json()["plan"] == "starter"
+
+        subscribe = client.post("/api/billing/subscribe?plan=growth")
+        assert subscribe.status_code == 200
+
+        status_after = client.get("/api/billing/status")
+        assert status_after.status_code == 200
+        assert status_after.json()["status"] == "active"
+        assert status_after.json()["plan"] == "growth"
